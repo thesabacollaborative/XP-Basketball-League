@@ -60,6 +60,37 @@ Source-of-truth documents live in `docs/`:
   `--fan`, `--danger`, `--info`. Fonts: Anton/Bebas Neue (display/heading), Inter
   (body), JetBrains Mono (mono).
 
+## Current status
+
+Phase 0 is functionally complete and verified end-to-end locally (sign in via
+email magic link → DOB/consent → pick role → empty role-aware dashboard →
+persists across reload), but **not yet deployed**. Deployment is on hold
+pending the user setting up a real Neon project and a Vercel account/git
+remote — ask before resuming that work, don't assume it's been done.
+
+Also **not yet built**: Auth.js's `session` strategy is `"database"` with an
+**email-only** login (no password) — see the "Auth.js" note below for why.
+Route protection is per-page (`requireUser`/`requireOnboardedUser` in
+`src/lib/session.ts`), not global middleware/`proxy.ts`.
+
+To resume local dev after a restart: the local Postgres from `prisma dev` does
+not survive a machine restart in the background — run
+`npx prisma dev --name xp-league-local --detach` again, confirm `.env`'s
+`DATABASE_URL`/`SHADOW_DATABASE_URL` still match its printed connection
+strings (ports can change), then `npx prisma migrate deploy`.
+
+## Auth.js
+
+Auth.js hard-requires JWT session strategy for any Credentials (password)
+provider — confirmed in `@auth/core`'s source (`assert.ts`), not just docs:
+"Signing in with credentials only supported if JWT strategy is enabled." This
+conflicts with the brief's "database sessions, not JWT-only" requirement, and
+it's a single global setting, not per-provider. Per user decision: **no
+password login at all** — email magic-link only (next-auth's `Resend`
+provider), which gets full database sessions with zero custom code. If
+password login is ever added later, it cannot share this Auth.js instance's
+session strategy without revisiting this decision.
+
 ## Working agreement (from the build brief)
 
 1. Plan before building each phase; show the plan before implementing unless told
