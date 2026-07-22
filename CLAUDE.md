@@ -62,11 +62,17 @@ Source-of-truth documents live in `docs/`:
 
 ## Current status
 
-Phase 0 is functionally complete and verified end-to-end locally (sign in via
-email magic link → DOB/consent → pick role → empty role-aware dashboard →
-persists across reload), but **not yet deployed**. Deployment is on hold
-pending the user setting up a real Neon project and a Vercel account/git
-remote — ask before resuming that work, don't assume it's been done.
+Phase 0 is complete and **deployed**: live at https://xp-basketball-league.vercel.app,
+auto-deploying from `main` on `thesabacollaborative/XP-Basketball-League`
+(GitHub). Real Neon Postgres in production (same DB for production and
+preview deployments — no per-branch DB isolation yet). Real Resend email in
+sandbox mode (only delivers to the Resend account's own signup address until
+a domain is verified). See `DEPLOYMENT.md` for the full setup.
+
+**Outstanding:** two real secrets (the Neon DB password and the Resend API
+key) were pasted into chat during setup — per the build brief's own security
+rule, flag to the user that these should be rotated once the deploy is
+confirmed stable, don't just assume it's been done.
 
 Also **not yet built**: Auth.js's `session` strategy is `"database"` with an
 **email-only** login (no password) — see the "Auth.js" note below for why.
