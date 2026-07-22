@@ -121,7 +121,6 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  passwordHash  String?
   activeRole    Role?
 
   // Minor consent placeholder gate (see CLAUDE.md) — captured at signup,
