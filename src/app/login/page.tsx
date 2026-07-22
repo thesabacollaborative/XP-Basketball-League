@@ -1,6 +1,10 @@
-import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
+import { auth, signIn } from "@/auth";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await auth();
+  if (session?.user) redirect("/");
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6">
       <div className="flex items-center gap-3">
