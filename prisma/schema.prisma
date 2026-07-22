@@ -151,6 +151,7 @@ model User {
   registrations        Registration[]
   clips                Clip[]
   feedPosts            FeedPost[]
+  trainingCompletions  TrainingCompletion[]
 }
 
 model UserRole {
@@ -468,6 +469,33 @@ model Minigame {
   tech   String
   desc   String
   detail String
+}
+
+// Not in PRD §5's table, but §4.8 explicitly requires a real, role-specific
+// Training & Clinics library -- there was nowhere to put it. `category`
+// mirrors the prototype's per-role tabs (drills/clinics/content/officiating).
+model TrainingItem {
+  id         String  @id
+  category   String
+  title      String
+  difficulty String
+  xp         Int
+  skill      String
+  equipment  String?
+  timeLabel  String?
+  recLevel   String?
+
+  completions TrainingCompletion[]
+}
+
+model TrainingCompletion {
+  id             String   @id @default(cuid())
+  userId         String
+  trainingItemId String
+  completedAt    DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainingItem TrainingItem @relation(fields: [trainingItemId], references: [id], onDelete: Cascade)
 }
 
 model FeedPost {
