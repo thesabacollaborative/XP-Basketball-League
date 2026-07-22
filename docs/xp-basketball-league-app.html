@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XP Basketball League — The League OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   SECTION: DESIGN TOKENS
+   ============================================================ */
+:root{
+  --bg:#12151A; --surface:#1B1F26; --surface-alt:#232833; --surface-raised:#2A303B; --line:#323847;
+  --chalk:#F3F1E9; --chalk-dim:#9BA1AE; --chalk-faint:#666D7C;
+  --wood:#CB8A4C; --wood-dim:#8B5A2B; --xp:#2FDD9B; --xp-dim:#1B7E58;
+  --fan:#E8B84B; --danger:#E85D4A; --info:#4AA3E8;
+  --font-display:'Anton','Bebas Neue',sans-serif; --font-heading:'Bebas Neue',sans-serif;
+  --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  --radius-sm:6px; --radius-md:12px; --radius-lg:20px; --sidebar-w:236px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--bg); color:var(--chalk); font-family:var(--font-body); min-height:100vh; -webkit-font-smoothing:antialiased;}
+a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--xp); color:#0A0C0F;}
+.court-texture{background-image:radial-gradient(circle at 15% 120%, rgba(203,138,76,0.14) 0, transparent 45%), radial-gradient(circle at 85% -20%, rgba(47,221,155,0.10) 0, transparent 40%);}
+
+/* ---------- Shell ---------- */
+#app-shell{display:flex; min-height:100vh;}
+#sidebar{width:var(--sidebar-w); flex:0 0 var(--sidebar-w); background:var(--surface); border-right:1px solid var(--line); display:flex; flex-direction:column; position:sticky; top:0; height:100vh;}
+.brand{padding:22px 20px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;}
+.brand-mark{width:34px; height:34px; border-radius:50%; background:conic-gradient(from 220deg, var(--wood), var(--xp), var(--wood)); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:15px; color:#0A0C0F; flex:0 0 34px;}
+.brand-text{font-family:var(--font-heading); letter-spacing:0.5px; line-height:1;}
+.brand-text b{display:block; font-size:18px; color:var(--chalk);}
+.brand-text span{display:block; font-size:10.5px; color:var(--chalk-faint); letter-spacing:2px; text-transform:uppercase; margin-top:2px;}
+#nav{flex:1; padding:12px 10px; overflow-y:auto;}
+.nav-group-label{font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--chalk-faint); padding:12px 10px 5px;}
+.nav-item{display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:var(--radius-sm); cursor:pointer; color:var(--chalk-dim); font-size:13.5px; font-weight:500; border:1px solid transparent; margin-bottom:2px; transition:background .15s, color .15s;}
+.nav-item:hover{background:var(--surface-alt); color:var(--chalk);}
+.nav-item.active{background:var(--surface-alt); color:var(--chalk); border-color:var(--line);}
+.nav-item.active .nav-ic{color:var(--xp);}
+.nav-ic{width:18px; text-align:center; font-size:14px;}
+.sidebar-foot{padding:14px; border-top:1px solid var(--line);}
+.role-pill{display:flex; align-items:center; gap:9px; background:var(--surface-alt); border:1px solid var(--line); border-radius:var(--radius-md); padding:9px 10px; cursor:pointer;}
+.role-pill:hover{border-color:var(--wood);}
+.role-avatar{width:30px; height:30px; border-radius:50%; background:var(--surface-raised); display:flex; align-items:center; justify-content:center; font-size:15px; flex:0 0 30px;}
+.role-meta{line-height:1.2; overflow:hidden;}
+.role-meta b{font-size:13px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.role-meta span{font-size:11px; color:var(--chalk-faint); text-transform:uppercase; letter-spacing:0.5px;}
+#main{flex:1; min-width:0; display:flex; flex-direction:column;}
+#topbar{position:sticky; top:0; z-index:5; background:rgba(18,21,26,0.85); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+.page-title{font-family:var(--font-heading); font-size:25px; letter-spacing:0.5px;}
+.page-sub{font-size:12.5px; color:var(--chalk-faint); margin-top:1px;}
+.quick-stats{display:flex; gap:10px; flex-wrap:wrap;}
+.chip{display:flex; align-items:center; gap:7px; background:var(--surface-alt); border:1px solid var(--line); padding:6px 12px; border-radius:999px; font-size:12.5px; font-family:var(--font-mono); white-space:nowrap;}
+.chip b{color:var(--chalk); font-weight:700;}
+.chip .dot{width:7px; height:7px; border-radius:50%;}
+#content{padding:26px 28px 60px; flex:1;}
+
+/* ---------- Shared ---------- */
+.grid{display:grid; gap:18px;}
+.grid-2{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(3,1fr);} .grid-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:720px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:20px;}
+.card-title{font-family:var(--font-heading); font-size:17px; letter-spacing:0.4px; margin:0 0 4px; display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.card-desc{font-size:12.5px; color:var(--chalk-faint); margin:0 0 14px;}
+.section-head{display:flex; align-items:flex-end; justify-content:space-between; margin:34px 0 16px; flex-wrap:wrap; gap:10px;}
+.section-head:first-child{margin-top:0;}
+.section-head h2{font-family:var(--font-heading); font-size:20px; letter-spacing:0.4px; margin:0;}
+.section-head p{font-size:12.5px; color:var(--chalk-faint); margin:2px 0 0;}
+.btn{font-family:var(--font-body); font-weight:600; font-size:13px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface-alt); color:var(--chalk); padding:9px 16px; cursor:pointer; transition:transform .1s, border-color .15s, background .15s; display:inline-flex; align-items:center; gap:7px;}
+.btn:hover{border-color:var(--wood); transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:var(--xp); color:#0A0C0F; border-color:var(--xp);}
+.btn-primary:hover{border-color:var(--xp); filter:brightness(1.08);}
+.btn-wood{background:var(--wood); color:#1A1200; border-color:var(--wood);}
+.btn-sm{padding:6px 11px; font-size:12px;}
+.btn-block{width:100%; justify-content:center;}
+.btn[disabled]{opacity:0.45; cursor:not-allowed;}
+.bar{height:8px; border-radius:999px; background:var(--surface-raised); overflow:hidden; position:relative;}
+.bar > i{display:block; height:100%; border-radius:999px; background:var(--xp); transition:width .5s ease;}
+.bar.wood > i{background:var(--wood);} .bar.fan > i{background:var(--fan);} .bar.mini{height:5px;}
+.badge-tag{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 8px; border-radius:999px; background:var(--surface-raised); color:var(--chalk-dim); border:1px solid var(--line); display:inline-block;}
+.pill-pending{background:rgba(232,184,75,0.14); color:var(--fan); border:1px solid var(--fan);}
+.pill-approved{background:rgba(47,221,155,0.12); color:var(--xp); border:1px solid var(--xp);}
+.conf-high{color:var(--xp); border-color:var(--xp);}
+.conf-medium{color:var(--fan); border-color:var(--fan);}
+.conf-low{color:var(--danger); border-color:var(--danger);}
+.tabs{display:flex; gap:6px; background:var(--surface-alt); padding:4px; border-radius:999px; border:1px solid var(--line); width:max-content; flex-wrap:wrap;}
+.tab{padding:7px 15px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--chalk-dim); white-space:nowrap;}
+.tab.active{background:var(--surface-raised); color:var(--chalk);}
+.chip-filter{padding:5px 12px; border-radius:999px; font-size:11.5px; font-weight:600; cursor:pointer; color:var(--chalk-dim); background:var(--surface-alt); border:1px solid var(--line);}
+.chip-filter.active{color:var(--chalk); border-color:var(--xp);}
+input,select,textarea{width:100%; background:var(--surface-alt); border:1px solid var(--line); color:var(--chalk); border-radius:var(--radius-sm); padding:9px 11px; font-size:13.5px; font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--xp); outline-offset:1px; border-color:var(--xp);}
+label{font-size:12px; color:var(--chalk-faint); display:block; margin:0 0 5px; text-transform:uppercase; letter-spacing:0.4px;}
+.field{margin-bottom:14px;}
+.empty{border:1.5px dashed var(--line); border-radius:var(--radius-lg); padding:34px 20px; text-align:center; color:var(--chalk-faint); font-size:13.5px;}
+.empty b{display:block; color:var(--chalk); font-family:var(--font-heading); font-size:17px; margin-bottom:5px; letter-spacing:0.3px;}
+#toast-host{position:fixed; bottom:22px; right:22px; z-index:999; display:flex; flex-direction:column; gap:8px;}
+.toast{background:var(--surface-raised); border:1px solid var(--xp); color:var(--chalk); padding:11px 16px; border-radius:var(--radius-md); font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,0.4); animation:toastIn .25s ease; max-width:320px;}
+@keyframes toastIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Onboarding ---------- */
+#onboarding{min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:40px 20px;}
+.ob-card{max-width:740px; width:100%; text-align:center; position:relative; z-index:1;}
+.ob-eyebrow{font-family:var(--font-mono); font-size:11px; letter-spacing:3px; color:var(--xp); text-transform:uppercase; margin-bottom:14px;}
+.ob-title{font-family:var(--font-display); font-size:clamp(34px,6vw,56px); line-height:1.03; margin:0 0 14px;}
+.ob-title span{color:var(--wood);}
+.ob-sub{color:var(--chalk-dim); font-size:15px; max-width:540px; margin:0 auto 34px; line-height:1.5;}
+.role-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; text-align:left;}
+@media(max-width:640px){.role-grid{grid-template-columns:repeat(2,1fr);}}
+.role-card{background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-lg); padding:18px 14px; cursor:pointer; transition:border-color .15s, transform .15s;}
+.role-card:hover{border-color:var(--xp); transform:translateY(-3px);}
+.role-card .ric{font-size:26px; margin-bottom:10px;}
+.role-card b{font-family:var(--font-heading); font-size:16px; display:block; letter-spacing:0.3px;}
+.role-card p{font-size:11.5px; color:var(--chalk-faint); margin:5px 0 0; line-height:1.4;}
+
+/* ---------- Dashboard ---------- */
+.hero{border-radius:var(--radius-lg); border:1px solid var(--line); padding:30px; position:relative; overflow:hidden; margin-bottom:26px;}
+.hero-title{font-family:var(--font-display); font-size:clamp(26px,4vw,38px); line-height:1.05; margin:0 0 8px; position:relative;}
+.hero-title .accent{color:var(--xp);}
+.hero-text{color:var(--chalk-dim); font-size:13.5px; max-width:560px; position:relative;}
+.hero-cta{margin-top:18px; display:flex; gap:10px; position:relative; flex-wrap:wrap;}
+.pathway-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+.pathway-row:last-child{margin-bottom:0;}
+.pathway-label{width:110px; font-size:12.5px; font-weight:600; flex:0 0 110px;}
+.pathway-pct{width:38px; text-align:right; font-family:var(--font-mono); font-size:12px; color:var(--chalk-faint); flex:0 0 38px;}
+.xp-track{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+.xp-track:last-child{border-bottom:none;}
+.xp-track-ic{width:38px; height:38px; border-radius:10px; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; font-size:17px; flex:0 0 38px;}
+.xp-track-body{flex:1; min-width:0;}
+.xp-track-top{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;}
+.xp-track-top b{font-family:var(--font-mono); color:var(--xp);}
+
+/* ---------- Player / role card ---------- */
+.pcard-wrap{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;}
+.pcard{width:300px; flex:0 0 300px; border-radius:22px; padding:2px; position:relative; background:linear-gradient(160deg, var(--wood), var(--surface-raised) 40%, var(--xp)); transition:box-shadow .4s ease;}
+.pcard.hot-1{box-shadow:0 0 22px 0 rgba(47,221,155,0.25);}
+.pcard.hot-2{box-shadow:0 0 32px 2px rgba(47,221,155,0.4);}
+.pcard.hot-3{box-shadow:0 0 46px 6px rgba(47,221,155,0.6), 0 0 70px 10px rgba(203,138,76,0.35);}
+.pcard-inner{background:linear-gradient(180deg, #1A1E25, #14171D 70%); border-radius:20px; padding:20px; position:relative; overflow:hidden;}
+.pcard-inner::before{content:''; position:absolute; top:-60%; left:-20%; width:140%; height:220%; background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%); transform:rotate(8deg);}
+.pcard-top{display:flex; justify-content:space-between; align-items:flex-start;}
+.pcard-lvl{font-family:var(--font-mono); font-size:11px; color:var(--chalk-faint); text-transform:uppercase; letter-spacing:1px;}
+.pcard-lvl b{display:block; font-family:var(--font-display); font-size:26px; color:var(--xp); line-height:1;}
+.pcard-photo{width:64px; height:64px; border-radius:50%; background:var(--surface-alt); border:2px solid var(--wood); display:flex; align-items:center; justify-content:center; font-size:30px;}
+.pcard-name{font-family:var(--font-display); font-size:24px; margin:14px 0 0; letter-spacing:0.3px;}
+.pcard-archetype{font-size:12px; color:var(--wood); font-weight:700; text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;}
+.pcard-meta{display:flex; gap:14px; margin:12px 0; font-size:11px; color:var(--chalk-faint); font-family:var(--font-mono); flex-wrap:wrap;}
+.pcard-attrs{display:grid; grid-template-columns:1fr 1fr; gap:7px 14px; margin-top:14px;}
+.attr-row{font-size:11px;}
+.attr-row-top{display:flex; justify-content:space-between; margin-bottom:3px;}
+.attr-row-top span{color:var(--chalk-dim);}
+.attr-row-top b{font-family:var(--font-mono);}
+.pcard-foot{display:flex; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid var(--line);}
+.pcard-foot .fstat{text-align:center;}
+.pcard-foot .fstat b{display:block; font-family:var(--font-mono); font-size:15px; color:var(--chalk);}
+.pcard-foot .fstat span{font-size:9.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--chalk-faint);}
+.pcard-side{flex:1; min-width:280px; display:flex; flex-direction:column; gap:16px;}
+.evidence-row{display:flex; align-items:center; gap:8px; font-size:11px; margin-top:3px;}
+.evidence-row span{color:var(--chalk-faint);}
+
+/* ---------- Teams / leaderboard / badges / training / feed ---------- */
+.team-card{position:relative;}
+.team-colorbar{height:5px; border-radius:4px; margin-bottom:12px;}
+.team-head{display:flex; gap:12px; align-items:center;}
+.team-logo{width:44px; height:44px; border-radius:12px; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; font-size:22px; flex:0 0 44px; position:relative;}
+.team-name{font-family:var(--font-heading); font-size:17px; letter-spacing:0.3px;}
+.team-motto{font-size:11.5px; color:var(--chalk-faint); font-style:italic;}
+.team-stats{display:flex; gap:16px; margin-top:14px; flex-wrap:wrap;}
+.team-stats div{font-size:11px; color:var(--chalk-faint);}
+.team-stats b{display:block; font-family:var(--font-mono); font-size:15px; color:var(--chalk);}
+table.lb{width:100%; border-collapse:collapse; font-size:13px;}
+table.lb th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--chalk-faint); padding:8px 10px; border-bottom:1px solid var(--line);}
+table.lb td{padding:11px 10px; border-bottom:1px solid var(--line);}
+table.lb tr:last-child td{border-bottom:none;}
+.rank-num{font-family:var(--font-mono); color:var(--chalk-faint); width:24px; display:inline-block;}
+.badge-card{cursor:pointer;}
+.badge-head{display:flex; gap:12px; align-items:center;}
+.badge-ic{width:42px; height:42px; border-radius:12px; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; font-size:21px; flex:0 0 42px;}
+.tier-row{display:flex; align-items:center; gap:10px; margin-top:8px; font-size:11.5px;}
+.tier-row .tname{width:64px; flex:0 0 64px; color:var(--chalk-dim);}
+.tier-row .tnum{width:100px; flex:0 0 100px; text-align:right; font-family:var(--font-mono); color:var(--chalk-faint);}
+.tier-row.done .tname{color:var(--xp);}
+.train-card .diff{margin-left:auto;}
+.train-meta{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 12px;}
+.video-ph{height:110px; border-radius:var(--radius-md); background:repeating-linear-gradient(135deg, var(--surface-alt), var(--surface-alt) 10px, var(--surface-raised) 10px, var(--surface-raised) 20px); display:flex; align-items:center; justify-content:center; color:var(--chalk-faint); font-size:22px; margin-bottom:12px;}
+.post{display:flex; gap:12px; padding:16px 0; border-bottom:1px solid var(--line);}
+.post:last-child{border-bottom:none;}
+.post-avatar{width:38px; height:38px; border-radius:50%; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 38px;}
+.post-body{flex:1;}
+.post-name{font-weight:700; font-size:13.5px;}
+.post-role{font-size:11px; color:var(--chalk-faint); margin-left:6px; text-transform:uppercase;}
+.post-text{font-size:13.5px; margin:6px 0 8px; line-height:1.5; color:var(--chalk-dim);}
+.post-actions{display:flex; gap:16px; font-size:12px; color:var(--chalk-faint);}
+.post-actions span{cursor:pointer;}
+.post-actions span:hover{color:var(--xp);}
+
+/* ---------- Clips / minigames ---------- */
+.clip-card{position:relative;}
+.clip-thumb{height:100px; border-radius:var(--radius-md); background:linear-gradient(135deg, var(--surface-alt), var(--surface-raised)); display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:10px; position:relative;}
+.clip-expand{margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--chalk-dim); line-height:1.6;}
+
+/* ---------- Competitions ---------- */
+.comp-fee{font-family:var(--font-mono); color:var(--xp); font-weight:700;}
+.slots-bar{margin:8px 0 12px;}
+
+/* ---------- Accordion (How It Works) ---------- */
+.accordion-head{cursor:pointer; display:flex; justify-content:space-between; align-items:center;}
+.accordion-chevron{color:var(--chalk-faint); font-size:13px; transition:transform .2s;}
+.accordion-body{margin-top:14px; font-size:13px; color:var(--chalk-dim); line-height:1.7;}
+.accordion-body ul{margin:0; padding-left:18px;}
+.accordion-body li{margin-bottom:7px;}
+.accordion-body h4{font-family:var(--font-heading); font-size:14px; letter-spacing:0.3px; color:var(--chalk); margin:16px 0 6px;}
+.accordion-body h4:first-child{margin-top:0;}
+
+/* ---------- Quiz ---------- */
+.quiz-progress{display:flex; gap:6px; margin-bottom:22px;}
+.quiz-progress i{flex:1; height:4px; border-radius:2px; background:var(--surface-raised);}
+.quiz-progress i.done{background:var(--xp);}
+.quiz-scenario{font-family:var(--font-heading); font-size:19px; letter-spacing:0.3px; line-height:1.3; margin:0 0 20px;}
+.quiz-opt{display:block; width:100%; text-align:left; background:var(--surface-alt); border:1px solid var(--line); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:10px; cursor:pointer; font-size:13.5px; color:var(--chalk);}
+.quiz-opt:hover{border-color:var(--xp); background:var(--surface-raised);}
+.result-arch{text-align:center; padding:10px 0 20px;}
+.result-arch .ric{font-size:44px;}
+.result-arch h2{font-family:var(--font-display); font-size:32px; margin:8px 0 6px;}
+
+/* ---------- Vision ---------- */
+.pillar-card{position:relative; overflow:hidden;}
+.pillar-num{font-family:var(--font-display); font-size:42px; color:var(--surface-raised); position:absolute; top:8px; right:16px;}
+.stat-strip{display:flex; gap:0; border:1px solid var(--line); border-radius:var(--radius-lg); overflow:hidden;}
+.stat-block{flex:1; padding:20px; text-align:center; border-right:1px solid var(--line);}
+.stat-block:last-child{border-right:none;}
+.stat-block b{display:block; font-family:var(--font-display); font-size:30px; color:var(--xp);}
+.stat-block span{font-size:11px; color:var(--chalk-faint); text-transform:uppercase; letter-spacing:0.5px;}
+.roadmap{display:flex; gap:0; position:relative; margin-top:10px;}
+.rm-step{flex:1; text-align:center; position:relative; padding-top:22px;}
+.rm-step::before{content:''; position:absolute; top:7px; left:0; right:0; height:2px; background:var(--line);}
+.rm-step::after{content:''; position:absolute; top:2px; left:50%; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--surface-alt); border:2px solid var(--wood);}
+.rm-step.done::after{background:var(--xp); border-color:var(--xp);}
+.rm-step b{display:block; font-family:var(--font-heading); font-size:14px; letter-spacing:0.3px;}
+.rm-step span{font-size:11px; color:var(--chalk-faint);}
+
+footer.dev-note{margin-top:50px; padding:18px 22px; border:1px dashed var(--line); border-radius:var(--radius-md); font-size:12px; color:var(--chalk-faint); font-family:var(--font-mono); line-height:1.6;}
+footer.dev-note b{color:var(--chalk-dim);}
+
+@media(max-width:900px){
+  #sidebar{position:fixed; left:0; top:0; z-index:20; transform:translateX(-100%); transition:transform .2s;}
+  #sidebar.open{transform:translateX(0);}
+  #topbar{padding:14px 16px;} #content{padding:18px 16px 50px;}
+}
+</style>
+</head>
+<body>
+<div id="toast-host"></div>
+<div id="root"></div>
+
+<script>
+/* ================================================================
+   XP BASKETBALL LEAGUE — INTERACTIVE PROTOTYPE (v2)
+   ----------------------------------------------------------------
+   Single-file vanilla JS app. No build step, no framework.
+     1. DATA     — mock "database". Swap for real API calls.
+     2. STATE     — in-memory app state (resets on reload by design).
+     3. HELPERS
+     4. VIEWS     — one render function per screen.
+     5. ROUTER
+     6. EVENTS    — delegated click/submit listeners, data-action driven.
+     7. INIT
+
+   Adding a feature = add data to DB, a case in handleAction / submit
+   handler, and a view function. Nothing else needs touching.
+   ================================================================ */
+
+/* ---------------------------------------------------------------
+   1. DATA
+   --------------------------------------------------------------- */
+const ARCHETYPES = {
+  floorgeneral:{name:'Floor General', icon:'🧠', adj:'Commanding', desc:'Pass-first tempo controller who elevates everyone around them.', emphasize:['passing','leadership','basketballIQ','decisionMaking'], tip:'Live in the Basketball IQ section of Training & Clinics — pick-and-roll reads and decision-making drills raise your ceiling faster than scoring reps.'},
+  shotcreator: {name:'Shot Creator',   icon:'🕹️', adj:'Shifty', desc:'Creates their own look off the dribble in the tightest windows.', emphasize:['shooting','confidence','decisionMaking'], tip:'Pair Shooting drills with reps under manufactured pressure — the Handle Pressure Simulator minigame builds the composure this archetype needs under a hand in the face.'},
+  sharpshooter:{name:'Sharpshooter',   icon:'🎯', adj:'Sharpshooting', desc:'Lethal from range, always moving to get open.', emphasize:['shooting','consistency','confidence'], tip:'Volume over variety — the Free Throw Consistency Score and Shot Arc Calibrator minigames reward repeatable form more than raw makes.'},
+  lockdown:    {name:'Lockdown Defender', icon:'🛡️', adj:'Suffocating', desc:'Makes the other team\u2019s best scorer work for everything.', emphasize:['defence','conditioning','communication'], tip:'Closeout & Footwork IQ and Conditioning Pace Coach are your two highest-leverage minigames — lockdown defence is footwork and stamina, not just effort.'},
+  rimprotector:{name:'Rim Protector',  icon:'🧱', adj:'Anchoring', desc:'Anchors the paint and erases mistakes at the rim.', emphasize:['defence','strength','conditioning'], tip:'Prioritise Defence and Conditioning drills built around verticality and timing over lateral quickness work.'},
+  slasher:     {name:'Slasher',        icon:'⚡', adj:'Explosive', desc:'Attacks the paint relentlessly and finishes through contact.', emphasize:['strength','confidence','conditioning'], tip:'Train finishing through contact specifically — strength and conditioning drills that simulate contact translate faster than open-gym reps alone.'},
+  connector:   {name:'Connector',      icon:'🤝', adj:'Steady', desc:'Glue-guy energy — rebounds, defends, and makes the extra pass.', emphasize:['communication','consistency','leadership'], tip:'There\u2019s no single stat line for this archetype — focus on Basketball IQ and Community pathway activities; your value shows up in team results, not personal totals.'},
+  enforcer:    {name:'Enforcer',       icon:'🧊', adj:'Physical', desc:'Physical presence who sets the tone on both ends of the floor.', emphasize:['strength','defence','leadership'], tip:'Strength and Defence drills first, but don\u2019t skip Leadership — enforcers set tone through communication as much as physicality.'},
+  microwave:   {name:'Microwave Scorer', icon:'🔥', adj:'Instant', desc:'Instant offence off the bench — built to get hot fast and change a game\u2019s momentum in a single shift.', emphasize:['shooting','confidence','conditioning'], tip:'Train in short, high-intensity shooting bursts rather than long steady sessions — your value is a fast trigger, not a slow warm-up.'},
+  stretchbig:  {name:'Stretch Big', icon:'🏗️', adj:'Stretching', desc:'A frontcourt player who steps out to shoot, pulling rim protectors away from the paint.', emphasize:['shooting','strength','consistency'], tip:'Combine Shooting drills from further range with Conditioning — the point of this archetype is range without losing post-up strength.'},
+  pointforward:{name:'Point Forward', icon:'🧭', adj:'Playmaking', desc:'A bigger, longer playmaker who initiates offence from the forward spot instead of the point guard.', emphasize:['passing','basketballIQ','strength'], tip:'Run Basketball IQ pick-and-roll reads specifically from the elbow and short-roll areas, since that\u2019s where this archetype creates offence.'},
+  sparkplug:   {name:'Sixth Man Spark', icon:'⚡', adj:'Electric', desc:'Instant energy off the bench — built to shift a game\u2019s momentum the moment they check in.', emphasize:['conditioning','confidence','communication'], tip:'Conditioning work that mimics short, all-out bursts (not steady endurance) mirrors how this role is actually used in games.'},
+  glueguy:     {name:'Glue Guy', icon:'🧩', adj:'Selfless', desc:'Does every unglamorous job — boxing out, setting screens, talking on defence — that holds a team together.', emphasize:['communication','consistency','defence'], tip:'The Community and Basketball IQ pathways matter as much as physical drills here — this archetype\u2019s value often isn\u2019t in the box score.'},
+  ironman:     {name:'Iron Man', icon:'🦾', adj:'Relentless', desc:'Never misses a rep — elite conditioning and reliability define this player more than any single skill.', emphasize:['conditioning','consistency','strength'], tip:'Chase attendance streaks and the Conditioning Pace Coach minigame — consistency is the actual skill you\u2019re building.'},
+  vocalleader: {name:'Vocal Leader', icon:'📣', adj:'Vocal', desc:'Organises teammates constantly, especially defensively — the loudest voice on the floor.', emphasize:['leadership','communication','basketballIQ'], tip:'Leadership pathway activities — organising sessions, mentoring — build this archetype as much as any on-court drill.'},
+  silentassassin:{name:'Silent Assassin', icon:'🥷', adj:'Silent', desc:'Minimal talk, maximum composure — lets the play speak, especially in clutch moments.', emphasize:['confidence','decisionMaking','consistency'], tip:'The Free Throw Consistency Score and Decision-Making Film Room minigames are built for exactly this archetype\u2019s strengths.'},
+  playmakingbig:{name:'Playmaking Big', icon:'🧠', adj:'Facilitating', desc:'A big who facilitates from the post or elbow rather than just finishing plays.', emphasize:['passing','basketballIQ','strength'], tip:'Passing reps from the post and elbow, paired with Basketball IQ film work, are rare drills most bigs skip — that\u2019s your edge.'},
+  offballmover:{name:'Off-Ball Mover', icon:'🏃', adj:'Restless', desc:'Constant cutting, screening and relocating to get open — rarely holds the ball, always affects the defence.', emphasize:['conditioning','basketballIQ','consistency'], tip:'Conditioning and Basketball IQ (reading defensive rotation) matter more here than ball-handling reps.'},
+  postanchor:  {name:'Post Anchor', icon:'⚓', adj:'Bruising', desc:'A back-to-the-basket scoring threat who lives in the paint.', emphasize:['strength','confidence','consistency'], tip:'Strength-focused Conditioning drills and repeatable post moves — logged and reviewed, not just attempted — build this archetype fastest.'},
+  perimetermenace:{name:'Perimeter Menace', icon:'🕸️', adj:'Disruptive', desc:'A disruptive on-ball defender who lives for turnovers and deflections.', emphasize:['defence','conditioning','confidence'], tip:'Closeout & Footwork IQ plus reactive-cue drills like the Handle Pressure Simulator, played from the defensive side, sharpen exactly this skill.'},
+  helpsidegeneral:{name:'Help-Side General', icon:'🛰️', adj:'Reading', desc:'Reads the floor defensively, organising rotations and help before the ball even arrives.', emphasize:['basketballIQ','communication','defence'], tip:'Decision-Making Film Room, watched from a defensive perspective, builds the floor-reading this archetype depends on.'},
+  hustler:     {name:'High-Motor Hustler', icon:'🐝', adj:'Hustling', desc:'Loose balls, offensive boards, relentless effort plays — wins games in ways that don\u2019t always show up on a stat sheet.', emphasize:['conditioning','strength','confidence'], tip:'Conditioning volume is your single highest-leverage training area — motor is trainable, not just a personality trait.'},
+  twowaywing:  {name:'Two-Way Wing', icon:'🔁', adj:'Two-Way', desc:'A balanced scorer and defender on the wing, equally comfortable on both ends.', emphasize:['shooting','defence','consistency'], tip:'Split training evenly across Shooting and Defence drills — the moment you specialise, you stop being a two-way player.'},
+  cerebral:    {name:'Cerebral Playmaker', icon:'🧮', adj:'Cerebral', desc:'Slows the game down and sees plays developing before they happen.', emphasize:['basketballIQ','decisionMaking','passing'], tip:'The Decision-Making Film Room is built for this archetype specifically — reps recognising situations matter more than reps executing them.'},
+  reboundmenace:{name:'Rebounding Menace', icon:'🧲', adj:'Magnetic', desc:'A magnet for the ball on the glass at both ends of the floor.', emphasize:['strength','conditioning','consistency'], tip:'Track rebounds specifically as a badge metric (Glass Cleaner) and pair Strength work with positioning drills, not just jumping ability.'},
+  clutchcloser:{name:'Clutch Closer', icon:'⏱️', adj:'Clutch', desc:'Thrives specifically in crunch-time situations — wants the ball with the game on the line.', emphasize:['confidence','decisionMaking','consistency'], tip:'Rehearse late-game scenarios specifically, not just general shooting — the Decision-Making Film Room\u2019s crunch-time clips are built for this.'}
+};
+
+const QUIZ_QUESTIONS = [
+  {id:'q1', scenario:'Fourth quarter, down by two, ball in your hands at the top of the key, 8 seconds left. What\u2019s your move?', options:[
+    {text:'Drive hard to the rim and force the contact', tags:{slasher:3, shotcreator:1}},
+    {text:'Pull up for the game-winning three', tags:{sharpshooter:3, shotcreator:1}},
+    {text:'Survey the floor and find the open teammate', tags:{floorgeneral:3, connector:1}},
+    {text:'Set a hard screen to free up a shooter', tags:{connector:2, enforcer:2}}
+  ]},
+  {id:'q2', scenario:'Your teammate is being guarded by a much bigger, physical defender near the block. What do you do?', options:[
+    {text:'Call for the ball and back him down myself', tags:{enforcer:3, slasher:1}},
+    {text:'Space the floor to open a driving lane', tags:{sharpshooter:2, floorgeneral:1}},
+    {text:'Cut backdoor while the defense is distracted', tags:{connector:2, shotcreator:1}},
+    {text:'Talk him through it and organise the offense', tags:{floorgeneral:3}}
+  ]},
+  {id:'q3', scenario:'The other team\u2019s best scorer is heating up. Your coach looks straight at you. What\u2019s your instinct?', options:[
+    {text:'I want that matchup — lock him down', tags:{lockdown:3}},
+    {text:'I rotate to protect the rim on every drive', tags:{rimprotector:3}},
+    {text:'I talk through switches and keep the defense organised', tags:{connector:2, floorgeneral:1}},
+    {text:'I get physical early to set a tone', tags:{enforcer:3}}
+  ]},
+  {id:'q4', scenario:'Fast break, three-on-two, ball in your hands. What do you do?', options:[
+    {text:'Push it myself and finish at the rim', tags:{slasher:3, shotcreator:1}},
+    {text:'Pull up from deep before the defense sets', tags:{sharpshooter:2, shotcreator:1}},
+    {text:'Find the trailing teammate for the easy bucket', tags:{floorgeneral:3, connector:1}}
+  ]},
+  {id:'q5', scenario:'A loose ball is bouncing near half court in a tie game. What\u2019s your reaction?', options:[
+    {text:'Dive for it, no hesitation', tags:{enforcer:3, connector:2}},
+    {text:'Read the bounce and box out for position', tags:{rimprotector:2, connector:1}},
+    {text:'Get back on defense first — safety over hustle', tags:{lockdown:2, floorgeneral:1}}
+  ]},
+  {id:'q6', scenario:'You get a wide-open catch-and-shoot look, right in rhythm. Confidence check?', options:[
+    {text:'Automatic — I\u2019ve drilled this shot a thousand times', tags:{sharpshooter:3}},
+    {text:'I\u2019ll take it, but I\u2019m better creating my own shot', tags:{shotcreator:2}},
+    {text:'I\u2019d rather swing it to a hotter teammate', tags:{connector:2, floorgeneral:1}}
+  ]},
+  {id:'q7', scenario:'Post-game, what are you most proud of?', options:[
+    {text:'My assist numbers and how the ball moved', tags:{floorgeneral:3}},
+    {text:'Shutting down their star player all night', tags:{lockdown:3}},
+    {text:'The highlight finish everyone\u2019s replaying', tags:{slasher:2, shotcreator:1}},
+    {text:'Setting the tone physically so my team could play free', tags:{enforcer:3, rimprotector:1}}
+  ]},
+  {id:'q8', scenario:'Your coach asks you to come off the bench instead of starting. Reaction?', options:[
+    {text:'Love it — I walk in ready to change the game immediately', tags:{microwave:3, sparkplug:2}},
+    {text:'Doesn\u2019t matter, I\u2019ll do my job whenever I\u2019m on the floor', tags:{glueguy:2, ironman:2}},
+    {text:'I\u2019d rather earn the start, but I\u2019ll bring energy either way', tags:{hustler:2, sparkplug:1}},
+    {text:'I want to know exactly what role they need from me', tags:{connector:2, vocalleader:1}}
+  ]},
+  {id:'q9', scenario:'A stretch four on the other team keeps pulling your centre away from the rim. What\u2019s your read?', options:[
+    {text:'Switch everything and live with the mismatch', tags:{twowaywing:2, perimetermenace:1}},
+    {text:'Sag off and protect the paint regardless', tags:{rimprotector:3}},
+    {text:'Talk the defence through it constantly', tags:{helpsidegeneral:3, vocalleader:1}},
+    {text:'Use it as a cue to attack that same space on offence', tags:{stretchbig:2, postanchor:1}}
+  ]},
+  {id:'q10', scenario:'You\u2019re a big man and the ball swings to you at the elbow with a cutter flashing backdoor. What do you do?', options:[
+    {text:'Hit the cutter, no hesitation', tags:{playmakingbig:3, pointforward:1}},
+    {text:'Turn and face for my own shot', tags:{stretchbig:2}},
+    {text:'Back down for a post move', tags:{postanchor:3}},
+    {text:'Read it, but I\u2019m not naturally looking to pass first', tags:{enforcer:1, rimprotector:1}}
+  ]},
+  {id:'q11', scenario:'What\u2019s more satisfying: a highlight dunk or a perfectly executed defensive rotation?', options:[
+    {text:'The dunk, obviously', tags:{slasher:2, microwave:1}},
+    {text:'The rotation — defence winning a game feels earned', tags:{helpsidegeneral:3, lockdown:1}},
+    {text:'Neither — give me the assist that led to either', tags:{cerebral:2, floorgeneral:1}},
+    {text:'The loose ball dive that led to both', tags:{hustler:3}}
+  ]},
+  {id:'q12', scenario:'Film session — what do you actually pay attention to?', options:[
+    {text:'My own shot mechanics, frame by frame', tags:{sharpshooter:2, silentassassin:1}},
+    {text:'Where the defence is rotating before the pass happens', tags:{cerebral:3, helpsidegeneral:1}},
+    {text:'My man\u2019s tendencies, so I know his move before he makes it', tags:{perimetermenace:2, lockdown:1}},
+    {text:'Team spacing and how my movement opens things up for others', tags:{offballmover:3}}
+  ]},
+  {id:'q13', scenario:'A teammate is having their worst game of the season. What do you do?', options:[
+    {text:'Keep talking to them, keep them in it', tags:{vocalleader:3, connector:1}},
+    {text:'Say nothing, just play harder myself to cover it', tags:{ironman:1, hustler:1}},
+    {text:'Get them an easy look to reset their confidence', tags:{pointforward:1, playmakingbig:1, floorgeneral:2}},
+    {text:'It happens — I stay even-keeled either way', tags:{silentassassin:2, clutchcloser:1}}
+  ]},
+  {id:'q14', scenario:'Off-season — what\u2019s the first thing you work on?', options:[
+    {text:'Range — extending my shot further out', tags:{stretchbig:2, sharpshooter:1}},
+    {text:'Conditioning — I never want to be the tired one late in games', tags:{ironman:2, hustler:1}},
+    {text:'Reading film — understanding the game better, not just playing it', tags:{cerebral:2, helpsidegeneral:1}},
+    {text:'Strength — I want contact to stop bothering me', tags:{postanchor:2, enforcer:1, rimprotector:1}}
+  ]},
+  {id:'q15', scenario:'Coach draws up the final play — and it\u2019s not for you. How do you feel?', options:[
+    {text:'A little frustrated — I want the ball in my hands', tags:{clutchcloser:2, shotcreator:1}},
+    {text:'Fine, as long as I\u2019m setting the right screen or making the right read', tags:{connector:2, glueguy:1}},
+    {text:'I\u2019m already thinking about boxing out for the rebound if it misses', tags:{reboundmenace:3}},
+    {text:'I trust it — my job is making sure everyone\u2019s in the right spot', tags:{floorgeneral:2, vocalleader:1}}
+  ]},
+  {id:'q16', scenario:'What do people say about you after a game, most often?', options:[
+    {text:'That shot never looked like it was going to miss', tags:{sharpshooter:2, clutchcloser:1}},
+    {text:'You never stop moving out there', tags:{offballmover:2, hustler:1}},
+    {text:'Nobody scored on you all night', tags:{lockdown:2, perimetermenace:1, twowaywing:1}},
+    {text:'You made everyone around you better', tags:{floorgeneral:2, connector:1, pointforward:1}}
+  ]},
+  {id:'q17', scenario:'A loose ball is heading out of bounds at full speed. What\u2019s your gut reaction?', options:[
+    {text:'Dive, no matter what', tags:{hustler:3, enforcer:1}},
+    {text:'Read the angle and cut it off calmly instead of diving', tags:{cerebral:1, helpsidegeneral:1, reboundmenace:1}},
+    {text:'Let it go if I\u2019m not the closest — trust the rotation', tags:{vocalleader:1, connector:1}},
+    {text:'Chase it down, athleticism first', tags:{slasher:1, microwave:1}}
+  ]},
+  {id:'q18', scenario:'Which pre-game routine sounds most like you?', options:[
+    {text:'Extra shooting reps until the rhythm feels automatic', tags:{sharpshooter:2, silentassassin:1}},
+    {text:'Watching film on exactly who I\u2019m guarding tonight', tags:{lockdown:1, perimetermenace:2}},
+    {text:'Talking to teammates, getting the group\u2019s energy up', tags:{vocalleader:2, sparkplug:1}},
+    {text:'Visualising the exact situation I want to be in late in the game', tags:{clutchcloser:2, cerebral:1}}
+  ]}
+];
+
+/* Difficulty-weighted XP tables — replaces flat awards so a Pickup game
+   and a verified Tournament run don't earn the same amount. Values sit
+   inside the wider tiered scale described in How It Works → XP System. */
+const GAME_TYPE_XP = {'1v1':25,'2v2':30,'3v3':45,'4v4':60,'5v5':90,'HORSE':15,'21':15,'American 21':20,'King of the Court':35,'Pickup':20,'League':220,'Tournament':650};
+const OFFICIATING_XP = {'1v1':15,'2v2':18,'3v3':25,'4v4':35,'5v5':55,'HORSE':10,'21':10,'American 21':12,'King of the Court':20,'Pickup':12,'League':130,'Tournament':400};
+const COACH_SESSION_XP = {'Skill clinic':60,'Team practice':90,'1-on-1 mentoring':50};
+const CREATOR_CONTENT_XP = {'Highlight clip':40,'Livestream':120,'Interview':90,'Recap':60};
+
+const DB = {
+  player: {
+    id:'p1', name:'Jordan Ade', photo:'🏀', height:'6\'2"', age:24,
+    positionPrimary:'Point Guard', positionSecondary:'Shooting Guard',
+    archetype:'Floor General', favouriteTeam:'Thames Ballers',
+    playstyle:'Pass-first tempo control with elite pick-and-roll reads.',
+    strengths:['Court Vision','Ball Handling','Leadership'],
+    weaknesses:['Post Defence','3PT Range'],
+    overall:78, rank:'Gold II', league:'London Street League',
+    streak:6, reputation:812, communityScore:64, fans:1240, hotStreak:0,
+    attributes:{shooting:62, passing:88, defence:54, conditioning:70, strength:58, leadership:82, communication:76, decisionMaking:80, basketballIQ:84, confidence:70, consistency:66},
+    attributeEvidence:{
+      shooting:{reps:2100, percentile:74, confidence:'High'}, passing:{reps:1560, percentile:88, confidence:'High'},
+      defence:{reps:410, percentile:52, confidence:'Medium'}, conditioning:{reps:980, percentile:66, confidence:'Medium'},
+      strength:{reps:120, percentile:48, confidence:'Low'}, leadership:{reps:340, percentile:79, confidence:'Medium'},
+      communication:{reps:210, percentile:70, confidence:'Low'}, decisionMaking:{reps:640, percentile:81, confidence:'Medium'},
+      basketballIQ:{reps:720, percentile:83, confidence:'Medium'}, confidence:{reps:300, percentile:65, confidence:'Low'},
+      consistency:{reps:410, percentile:60, confidence:'Medium'}
+    },
+    xpTracks:{
+      player:{label:'Player', icon:'🏀', level:14, xp:2340, next:3000},
+      community:{label:'Community', icon:'🤝', level:6, xp:410, next:600},
+      creator:{label:'Creator', icon:'🎬', level:2, xp:90, next:300},
+      coach:{label:'Coach', icon:'📋', level:1, xp:20, next:200},
+      official:{label:'Official', icon:'🎓', level:0, xp:0, next:150}
+    },
+    lifePathways:{athlete:74, leadership:66, coaching:20, community:58, creator:15, professional:34},
+    activeChallenges:[
+      {id:'daily1', title:'30-Minute Court Session', type:'Daily', progress:18, target:30, unit:'min', xp:35},
+      {id:'weekly1', title:'Hit 150 Jump Shots', type:'Weekly', progress:92, target:150, unit:'shots', xp:280},
+      {id:'weekly2', title:'Log 3 Assists in a Game', type:'Weekly', progress:1, target:3, unit:'assists', xp:180},
+      {id:'season1', title:'Complete a Full 12-Week Season', type:'Seasonal', progress:6, target:12, unit:'weeks', xp:2200}
+    ],
+    clips:[
+      {id:'c1', title:'Elbow Catch & Shoot', date:'14 Jul', duration:'0:42', note:'Form review: release point is consistent; base narrows late in the set.'},
+      {id:'c2', title:'Two-Ball Dribble Series', date:'11 Jul', duration:'1:05', note:'Left-hand control improving; keep eyes up rather than on the ball.'}
+    ],
+    coachNote:'Nice control on your left-hand dribble series — keep your eyes up, not down at the ball. — Coach Marcus D.',
+    pendingMilestones:[],
+    registrations:[]
+  },
+
+  roleCards:{
+    coach:{name:'Jordan Ade', icon:'📋', athletesCoached:9, sessionsRun:34, avgImprovement:'+18%', certifications:['Youth Development L1','Defensive Fundamentals'], specialties:['Shooting mechanics','Defensive footwork']},
+    creator:{name:'Jordan Ade', icon:'🎬', highlightsProduced:22, totalViews:'48.2K', fanGrowth30d:'+310', engagementRate:'6.4%', specialties:['Game-day highlights','Player interviews']},
+    official:{name:'Jordan Ade', icon:'🎓', matchesOfficiated:6, accuracyRating:'91%', certifications:['Rules Fundamentals'], specialties:['3v3 half-court mechanics']}
+  },
+
+  /* Evidence-emulated badge catalogue — original names/tiers inspired by
+     the general concept of skill badges, not copied from any specific
+     licensed product. Five categories, each with subcategories. */
+  badges:{
+    player:[
+      {id:'sharprelease', name:'Sharp Release', icon:'🎯', sub:'Shooting', desc:'Catch-and-shoot makes, logged and verified.', tiers:[{name:'Bronze',req:1000},{name:'Silver',req:5000},{name:'Gold',req:15000},{name:'Hall of Fame',req:40000}], progress:8300},
+      {id:'rangefinder', name:'Range Finder', icon:'🏹', sub:'Shooting', desc:'Verified makes from deep range.', tiers:[{name:'Bronze',req:300},{name:'Silver',req:1200},{name:'Gold',req:4000},{name:'Hall of Fame',req:10000}], progress:1900},
+      {id:'ftace', name:'Free Throw Ace', icon:'🎟️', sub:'Shooting', desc:'Free throws made in verified matches.', tiers:[{name:'Bronze',req:200},{name:'Silver',req:800},{name:'Gold',req:2500},{name:'Hall of Fame',req:6000}], progress:640},
+      {id:'visionkeeper', name:'Vision Keeper', icon:'👁️', sub:'Playmaking', desc:'Assists logged across all verified game types.', tiers:[{name:'Bronze',req:500},{name:'Silver',req:2000},{name:'Gold',req:6000},{name:'Hall of Fame',req:15000}], progress:2210},
+      {id:'pickreader', name:'Pick Reader', icon:'🔁', sub:'Playmaking', desc:'Verified pick-and-roll assists.', tiers:[{name:'Bronze',req:150},{name:'Silver',req:600},{name:'Gold',req:1800},{name:'Hall of Fame',req:4500}], progress:410},
+      {id:'ballsecurity', name:'Ball Security', icon:'🔒', sub:'Playmaking', desc:'Low-turnover games, verified by opponents.', tiers:[{name:'Bronze',req:20},{name:'Silver',req:80},{name:'Gold',req:200},{name:'Hall of Fame',req:500}], progress:64},
+      {id:'ironwall', name:'Iron Wall', icon:'🧱', sub:'Defence', desc:'Contested shots and defensive stops, witness-confirmed.', tiers:[{name:'Bronze',req:1000},{name:'Silver',req:4000},{name:'Gold',req:12000},{name:'Hall of Fame',req:30000}], progress:1450},
+      {id:'glasscleaner', name:'Glass Cleaner', icon:'🧹', sub:'Defence', desc:'Verified rebounds in tracked matches.', tiers:[{name:'Bronze',req:500},{name:'Silver',req:2000},{name:'Gold',req:6000},{name:'Hall of Fame',req:15000}], progress:1120},
+      {id:'passinglane', name:'Passing Lane Ghost', icon:'👻', sub:'Defence', desc:'Steals logged and confirmed.', tiers:[{name:'Bronze',req:200},{name:'Silver',req:800},{name:'Gold',req:2500},{name:'Hall of Fame',req:6000}], progress:390},
+      {id:'rimguardian', name:'Rim Guardian', icon:'🚫', sub:'Defence', desc:'Blocks recorded in verified games.', tiers:[{name:'Bronze',req:100},{name:'Silver',req:400},{name:'Gold',req:1200},{name:'Hall of Fame',req:3000}], progress:210},
+      {id:'marathon', name:'Marathon', icon:'🏃', sub:'Athleticism', desc:'Minutes of verified court time.', tiers:[{name:'Bronze',req:3000},{name:'Silver',req:10000},{name:'Gold',req:30000},{name:'Hall of Fame',req:80000}], progress:6120},
+      {id:'finisher', name:'Finisher', icon:'💥', sub:'Athleticism', desc:'Paint finishes through contact, verified.', tiers:[{name:'Bronze',req:150},{name:'Silver',req:600},{name:'Gold',req:1800},{name:'Hall of Fame',req:4500}], progress:520},
+      {id:'ironman', name:'Iron Man', icon:'🦾', sub:'Athleticism', desc:'Consecutive verified sessions attended.', tiers:[{name:'Bronze',req:10},{name:'Silver',req:30},{name:'Gold',req:75},{name:'Hall of Fame',req:150}], progress:22}
+    ],
+    community:[
+      {id:'sixthman', name:'Sixth Man', icon:'🙌', sub:'Community', desc:'Verified hours volunteered organising sessions and events.', tiers:[{name:'Bronze',req:20},{name:'Silver',req:75},{name:'Gold',req:200},{name:'Hall of Fame',req:500}], progress:54},
+      {id:'welcomecomm', name:'Welcome Committee', icon:'👋', sub:'Community', desc:'Beginners mentored, confirmed by the mentee.', tiers:[{name:'Bronze',req:3},{name:'Silver',req:10},{name:'Gold',req:30},{name:'Hall of Fame',req:80}], progress:6},
+      {id:'peacekeeper', name:'Peacekeeper', icon:'☮️', sub:'Community', desc:'Seasons completed with zero upheld conduct flags.', tiers:[{name:'Bronze',req:1},{name:'Silver',req:3},{name:'Gold',req:6},{name:'Hall of Fame',req:12}], progress:2},
+      {id:'eventarchitect', name:'Event Architect', icon:'🗓️', sub:'Community', desc:'Community events organised and run.', tiers:[{name:'Bronze',req:2},{name:'Silver',req:8},{name:'Gold',req:20},{name:'Hall of Fame',req:50}], progress:3},
+      {id:'courtambassador', name:'Court Ambassador', icon:'📍', sub:'Community', desc:'League outreach events represented.', tiers:[{name:'Bronze',req:2},{name:'Silver',req:6},{name:'Gold',req:15},{name:'Hall of Fame',req:40}], progress:1},
+      {id:'fundraiser', name:'Fundraiser', icon:'💚', sub:'Community', desc:'Verified contribution to community fundraising events.', tiers:[{name:'Bronze',req:1},{name:'Silver',req:3},{name:'Gold',req:8},{name:'Hall of Fame',req:20}], progress:1}
+    ],
+    creator:[
+      {id:'hype', name:'Hype Machine', icon:'📹', sub:'Creator', desc:'Fans gained through published content.', tiers:[{name:'Bronze',req:200},{name:'Silver',req:1000},{name:'Gold',req:5000},{name:'Hall of Fame',req:20000}], progress:1240},
+      {id:'highlightreel', name:'Highlight Reel', icon:'🎞️', sub:'Creator', desc:'Highlight clips published.', tiers:[{name:'Bronze',req:10},{name:'Silver',req:40},{name:'Gold',req:120},{name:'Hall of Fame',req:300}], progress:22},
+      {id:'storyteller', name:'Storyteller', icon:'📖', sub:'Creator', desc:'Long-form pieces produced (recaps, interviews, documentaries).', tiers:[{name:'Bronze',req:3},{name:'Silver',req:12},{name:'Gold',req:35},{name:'Hall of Fame',req:80}], progress:4},
+      {id:'engagementmagnet', name:'Engagement Magnet', icon:'💬', sub:'Creator', desc:'Verified comments and engagement generated.', tiers:[{name:'Bronze',req:500},{name:'Silver',req:2500},{name:'Gold',req:8000},{name:'Hall of Fame',req:20000}], progress:1980},
+      {id:'livestreamregular', name:'Livestream Regular', icon:'📡', sub:'Creator', desc:'Livestreams hosted.', tiers:[{name:'Bronze',req:3},{name:'Silver',req:12},{name:'Gold',req:35},{name:'Hall of Fame',req:80}], progress:2}
+    ],
+    coach:[
+      {id:'courtwhisperer', name:'Court Whisperer', icon:'📣', sub:'Coach', desc:'Athletes coached to a verified level-up.', tiers:[{name:'Bronze',req:5},{name:'Silver',req:20},{name:'Gold',req:60},{name:'Hall of Fame',req:150}], progress:3},
+      {id:'sessionarchitect', name:'Session Architect', icon:'🗂️', sub:'Coach', desc:'Training sessions planned and run.', tiers:[{name:'Bronze',req:10},{name:'Silver',req:40},{name:'Gold',req:120},{name:'Hall of Fame',req:300}], progress:34},
+      {id:'talentscout', name:'Talent Scout', icon:'🔍', sub:'Coach', desc:'Promising players identified and recommended.', tiers:[{name:'Bronze',req:2},{name:'Silver',req:8},{name:'Gold',req:20},{name:'Hall of Fame',req:50}], progress:1},
+      {id:'certifiedmentor', name:'Certified Mentor', icon:'🎓', sub:'Coach', desc:'Coaching certifications completed.', tiers:[{name:'Bronze',req:1},{name:'Silver',req:3},{name:'Gold',req:6},{name:'Hall of Fame',req:12}], progress:2},
+      {id:'culturebuilder', name:'Culture Builder', icon:'🌱', sub:'Coach', desc:'Positive team-culture score from verified athlete feedback.', tiers:[{name:'Bronze',req:50},{name:'Silver',req:200},{name:'Gold',req:600},{name:'Hall of Fame',req:1500}], progress:120}
+    ],
+    official:[
+      {id:'rulebookready', name:'Rulebook Ready', icon:'📘', sub:'Official', desc:'Rules and mechanics modules completed.', tiers:[{name:'Bronze',req:1},{name:'Silver',req:3},{name:'Gold',req:6},{name:'Hall of Fame',req:12}], progress:1},
+      {id:'whistlesteady', name:'Whistle Steady', icon:'🔔', sub:'Official', desc:'Matches officiated.', tiers:[{name:'Bronze',req:5},{name:'Silver',req:20},{name:'Gold',req:60},{name:'Hall of Fame',req:150}], progress:6},
+      {id:'callaccuracy', name:'Call Accuracy', icon:'✅', sub:'Official', desc:'Season accuracy rating from reviewed calls.', tiers:[{name:'Bronze',req:80},{name:'Silver',req:88},{name:'Gold',req:94},{name:'Hall of Fame',req:98}], progress:91},
+      {id:'conflictresolver', name:'Conflict Resolver', icon:'⚖️', sub:'Official', desc:'Disputes mediated fairly, confirmed by review.', tiers:[{name:'Bronze',req:2},{name:'Silver',req:8},{name:'Gold',req:20},{name:'Hall of Fame',req:50}], progress:1}
+    ]
+  },
+
+  teams:[
+    {id:'t1', name:'Thames Ballers', logo:'🌊', logoStatus:'approved', color:'#2FDD9B', motto:'Flow like the river, hit like the tide.', court:'Southbank Courts', level:9, fans:3400, roster:8, accolades:2},
+    {id:'t2', name:'Camden Crossovers', logo:'⚡', logoStatus:'approved', color:'#E8B84B', motto:'Handle first, ask questions later.', court:'Camden Lock Courts', level:7, fans:2100, roster:6, accolades:1},
+    {id:'t3', name:'Peckham Posterizers', logo:'🔥', logoStatus:'approved', color:'#E85D4A', motto:'We came to finish, not to visit.', court:'Peckham Rye Courts', level:11, fans:5200, roster:9, accolades:4},
+    {id:'t4', name:'Hackney Hoopers', logo:'🎨', logoStatus:'pending', color:'#4AA3E8', motto:'Every run is a canvas.', court:'London Fields Courts', level:5, fans:980, roster:5, accolades:0}
+  ],
+
+  leaderboards:{
+    players:[
+      {name:'Jordan Ade', team:'Thames Ballers', level:14, fans:1240, archetype:'Floor General'},
+      {name:'Amara Okoye', team:'Peckham Posterizers', level:19, fans:6100, archetype:'Rim Protector'},
+      {name:'Leo Marsh', team:'Camden Crossovers', level:12, fans:2600, archetype:'Shot Creator'},
+      {name:'Priya Chandra', team:'Hackney Hoopers', level:8, fans:640, archetype:'Sharpshooter'},
+      {name:'Sam Okafor', team:'Peckham Posterizers', level:16, fans:4300, archetype:'Lockdown Defender'}
+    ],
+    coaches:[
+      {name:'Marcus D.', level:11, athletesCoached:22, rep:940},
+      {name:'Nia Brooks', level:8, athletesCoached:14, rep:610},
+      {name:'Tomasz Kowal', level:6, athletesCoached:9, rep:405}
+    ],
+    creators:[
+      {name:'Ade Visuals', level:9, fans:8200, views:'112K'},
+      {name:'Court Cuts London', level:7, fans:5100, views:'74K'},
+      {name:'Priya Chandra', level:4, fans:2200, views:'31K'}
+    ],
+    officials:[
+      {name:'Wes Iyamu', level:10, matchesOfficiated:88, accuracy:'96%'},
+      {name:'Grace Adeyemi', level:6, matchesOfficiated:41, accuracy:'93%'},
+      {name:'Dan Cross', level:3, matchesOfficiated:15, accuracy:'89%'}
+    ]
+  },
+
+  training:{
+    drills:[
+      {id:'tr1', title:'Elbow Catch & Shoot', difficulty:'Beginner', xp:40, skill:'Shooting', equipment:'1 ball', time:'15 min', completion:'82%', rating:4.6, recLevel:'1+'},
+      {id:'tr2', title:'Two-Ball Dribble Series', difficulty:'Intermediate', xp:110, skill:'Ball Handling', equipment:'2 balls', time:'20 min', completion:'64%', rating:4.8, recLevel:'5+'},
+      {id:'tr3', title:'Closeout & Contest Footwork', difficulty:'Intermediate', xp:95, skill:'Defence', equipment:'Cones', time:'18 min', completion:'57%', rating:4.5, recLevel:'6+'},
+      {id:'tr4', title:'Pick-and-Roll Reads', difficulty:'Advanced', xp:260, skill:'Basketball IQ', equipment:'4+ players', time:'25 min', completion:'41%', rating:4.9, recLevel:'10+'},
+      {id:'tr5', title:'Full-Court Conditioning Ladder', difficulty:'Advanced', xp:240, skill:'Conditioning', equipment:'None', time:'22 min', completion:'48%', rating:4.4, recLevel:'8+'},
+      {id:'tr6', title:'Free Throw Routine Builder', difficulty:'Beginner', xp:35, skill:'Shooting', equipment:'1 ball', time:'12 min', completion:'88%', rating:4.7, recLevel:'1+'},
+      {id:'tr7', title:'Coach-Verified Skills Combine', difficulty:'Elite', xp:850, skill:'Basketball IQ', equipment:'Filmed 5v5, coach present', time:'60 min', completion:'12%', rating:4.9, recLevel:'20+'}
+    ],
+    clinics:[
+      {id:'cl1', title:'Session Planning Fundamentals', difficulty:'Beginner', xp:50, skill:'Session Design', equipment:'None', time:'20 min', completion:'76%', rating:4.7, recLevel:'1+'},
+      {id:'cl2', title:'Coaching Defensive Footwork', difficulty:'Intermediate', xp:130, skill:'Defence Coaching', equipment:'Cones', time:'25 min', completion:'58%', rating:4.6, recLevel:'4+'},
+      {id:'cl3', title:'Giving Feedback Athletes Retain', difficulty:'Intermediate', xp:100, skill:'Communication', equipment:'None', time:'15 min', completion:'70%', rating:4.8, recLevel:'3+'}
+    ],
+    content:[
+      {id:'ct1', title:'Filming Game-Day Highlights', difficulty:'Beginner', xp:45, skill:'Filming', equipment:'Phone/camera', time:'15 min', completion:'80%', rating:4.5, recLevel:'1+'},
+      {id:'ct2', title:'Editing for Retention', difficulty:'Intermediate', xp:120, skill:'Editing', equipment:'Editing app', time:'25 min', completion:'55%', rating:4.6, recLevel:'2+'},
+      {id:'ct3', title:'Growing an Audience Ethically', difficulty:'Intermediate', xp:100, skill:'Growth', equipment:'None', time:'18 min', completion:'62%', rating:4.4, recLevel:'2+'}
+    ],
+    officiating:[
+      {id:'of1', title:'Rules Fundamentals', difficulty:'Beginner', xp:50, skill:'Rules', equipment:'None', time:'20 min', completion:'85%', rating:4.7, recLevel:'1+'},
+      {id:'of2', title:'3v3 Half-Court Mechanics', difficulty:'Intermediate', xp:110, skill:'Mechanics', equipment:'None', time:'20 min', completion:'60%', rating:4.6, recLevel:'2+'},
+      {id:'of3', title:'Managing Disputes on the Court', difficulty:'Advanced', xp:220, skill:'Conflict Resolution', equipment:'None', time:'22 min', completion:'44%', rating:4.8, recLevel:'4+'}
+    ]
+  },
+
+  minigames:[
+    {id:'mg1', title:'Reaction Reflex Trainer', tag:'Speed & Reflex', tech:'Pose tracking + reaction timing', desc:'Reads your recorded catch-and-shoot reps to build a reaction-time drill tuned to your release speed.', detail:'Uses your phone camera to time the gap between the pass arriving and your first movement, the same frame-by-frame approach shot-tracking apps use to clock release time — then narrows that gap with randomised timing cues.'},
+    {id:'mg2', title:'Shot Arc Calibrator', tag:'Shooting', tech:'Ball-tracking computer vision', desc:'Compares your logged shot clips against an ideal arc range and gives a personalised correction.', detail:'Computer vision plots the ball\u2019s flight path frame-by-frame — the same core technique consumer shot-tracking apps use — and flags whether your arc is too flat or too high relative to your release height and distance.'},
+    {id:'mg3', title:'Handle Pressure Simulator', tag:'Ball Handling', tech:'Pose tracking + reactive audio cues', desc:'Layers randomised defensive pressure cues onto your live dribbling so you rehearse ball security while distracted, not just in a quiet gym.', detail:'Tracks hand and ball position through your camera and fires unpredictable audio/visual cues (a clap, a colour, a direction call) you must react to mid-dribble, building the divided attention real defensive pressure demands.'},
+    {id:'mg4', title:'Closeout & Footwork IQ', tag:'Defence', tech:'Full-body pose estimation', desc:'Scores your defensive stance, closeout angle and lateral footwork against a benchmark, rep by rep.', detail:'Full-body pose estimation checks knee bend, hip height and foot spacing against a coach-verified benchmark posture, the same skeletal-tracking approach used in biomechanics and injury-prevention research.'},
+    {id:'mg5', title:'Decision-Making Film Room', tag:'Basketball IQ', tech:'AI-curated game-situation clips', desc:'Short game-situation clips pause at the decision point and quiz you on the read — pass, shoot or drive — then reveals what the numbers say was the highest-value choice.', detail:'Clips are tagged and surfaced by situation type (odd-man break, closeout, pick-and-roll) so your film room adapts to the reads you get wrong most, rather than a fixed generic quiz.'},
+    {id:'mg6', title:'Free Throw Consistency Score', tag:'Shooting', tech:'Motion consistency scoring', desc:'Scores how repeatable your pre-shot routine and release actually are across attempts, not just makes vs. misses.', detail:'Rather than only counting makes, this compares your motion frame-by-frame across attempts and scores consistency — because a repeatable routine is what research on pre-performance routines links to better performance under pressure, more than raw talent alone.'},
+    {id:'mg7', title:'Vertical & First-Step Tracker', tag:'Athleticism', tech:'Camera-based jump & sprint analysis', desc:'Estimates vertical leap and first-step burst from your phone camera, and tracks the trend over a training block.', detail:'Uses frame timing and body landmark tracking to estimate jump height and ground-contact time without needing a force plate — accurate enough to track your own trend over weeks, not to replace a lab test.'},
+    {id:'mg8', title:'Conditioning Pace Coach', tag:'Conditioning', tech:'Wearable heart-rate + motion pacing', desc:'Pairs with a heart-rate wearable to keep your conditioning circuits in the right training zone instead of guessing effort.', detail:'Cross-checks your movement speed against heart-rate zone data so a "hard" conditioning rep is verified by physiology, not just how tired you say you felt.'}
+  ],
+
+  /* Rare, high-value achievements — the top of the XP range. Always
+     queued for admin/league review rather than awarded instantly, since
+     bigger rewards need heavier verification (see Evidence & Fair Play). */
+  milestones:[
+    {id:'ms1', title:'Certified Youth Coach (L1)', tier:'Significant', xp:900, track:'coach', desc:'Completed an accredited external coaching qualification.'},
+    {id:'ms2', title:'Verified Tournament Championship', tier:'Rare', xp:3000, track:'player', desc:'Won a fully-verified, refereed tournament with a registered team.'},
+    {id:'ms3', title:'Season MVP (Peer + Coach Voted)', tier:'Rare', xp:5000, track:'player', desc:'Voted Season MVP through combined coach and peer review.'},
+    {id:'ms4', title:'Master Coach Certification', tier:'Rare', xp:4000, track:'coach', desc:'Completed the highest external coaching accreditation tier.'},
+    {id:'ms5', title:'League Championship Title', tier:'Rare', xp:10000, track:'player', desc:'Won the full league championship with a registered team, verified by league officials.'}
+  ],
+
+  matches:[
+    {id:'m1', type:'5v5', date:'12 Jul', result:'W 58–51', note:'8 pts, 11 ast, 3 stl'},
+    {id:'m2', type:'Pickup', date:'9 Jul', result:'—', note:'Open run, 40 min logged'},
+    {id:'m3', type:'3v3', date:'4 Jul', result:'W 21–17', note:'12 pts, 4 ast'}
+  ],
+
+  feed:[
+    {id:'f1', name:'Amara Okoye', role:'Player · Rim Protector', avatar:'🧢', text:'Blocked 6 shots at Southbank tonight — Peckham D holding it down. Iron Wall Gold is close 👀', likes:42, comments:9},
+    {id:'f2', name:'Coach Marcus D.', role:'Coach', avatar:'📋', text:'Ran a closeout footwork clinic for 14 beginners this morning. Two of them logged a level-up by the end of the session. This is the whole point.', likes:67, comments:14},
+    {id:'f3', name:'Thames Ballers', role:'Team', avatar:'🌊', text:'Squad hits Level 9 as a team 🌊 Next stop: London Fields for the inter-borough friendly.', likes:88, comments:21}
+  ],
+
+  competitions:[
+    {id:'cp1', name:'Summer 2v2 Cup', format:'2v2', fee:'£15 / team', dates:'2–3 Aug', slots:32, filled:21},
+    {id:'cp2', name:'Street Series 3v3', format:'3v3', fee:'£25 / team', dates:'16–17 Aug', slots:24, filled:14},
+    {id:'cp3', name:'Rec League 4v4 Cup', format:'4v4', fee:'£40 / team', dates:'30–31 Aug', slots:16, filled:6},
+    {id:'cp4', name:'XP League 5v5 Championship', format:'5v5', fee:'£60 / team', dates:'12–14 Sep', slots:16, filled:9}
+  ]
+};
+
+/* ---------------------------------------------------------------
+   2. STATE
+   --------------------------------------------------------------- */
+const state = {
+  onboarded:false, role:null, view:'dashboard',
+  lbTab:'players', lbSort:'level',
+  badgeCat:null, badgeSub:'All', badgeOpen:null,
+  trainTab:null,
+  howOpen:{xp:true},
+  quiz:null,
+  cycleTab:'prepare', cueWord:'', mood:null, reflectionLog:[]
+};
+
+const ROLE_META = {
+  player: {icon:'🏀', label:'Player', headline:'Your game. Tracked, trained, levelled up.', sub:'Log every run, build your Player Card, and climb the league — one XP track at a time.', badgeCat:'player', trainTab:'drills'},
+  coach:  {icon:'📋', label:'Coach', headline:'Build players. Build the game.', sub:'Track your athletes\u2019 progress, run sessions, and grow your Coach XP track and reputation.', badgeCat:'coach', trainTab:'clinics'},
+  creator:{icon:'🎬', label:'Creator', headline:'Capture the culture. Grow the brand.', sub:'Turn highlights into fans, and fans into a Creator track that funds the next production.', badgeCat:'creator', trainTab:'content'},
+  admin:  {icon:'🗂️', label:'Admin', headline:'Run the league like clockwork.', sub:'Teams, courts, events and the Official track — the operating layer behind XP Basketball League.', badgeCat:'official', trainTab:'officiating'}
+};
+
+/* ---------------------------------------------------------------
+   3. HELPERS
+   --------------------------------------------------------------- */
+function showToast(msg){
+  const host = document.getElementById('toast-host');
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
+}
+function pct(a,b){ return Math.max(0, Math.min(100, Math.round((a/b)*100))); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function confClass(c){ return c==='High' ? 'conf-high' : c==='Medium' ? 'conf-medium' : 'conf-low'; }
+
+function awardXP(track, amount){
+  const t = DB.player.xpTracks[track];
+  t.xp += amount;
+  while (t.xp >= t.next){
+    t.xp -= t.next; t.level += 1; t.next = Math.round(t.next * 1.28);
+    showToast(`⬆️ ${t.label} track levelled up — now level ${t.level}!`);
+  }
+  showToast(`+${amount} XP · ${t.label} track (evidence recorded)`);
+}
+
+/* Combines two archetypes into a procedurally generated hybrid nickname —
+   used when a quiz result is a genuine close call between two builds,
+   rather than forcing a tie into one ill-fitting box. */
+function generateHybridNickname(idA, idB){
+  const a = ARCHETYPES[idA], b = ARCHETYPES[idB];
+  const nounB = b.name.split(' ').pop();
+  return `${a.adj} ${nounB}`;
+}
+
+/* Loosely maps each attribute to the closest skill tag in the training
+   library, so a quiz result can point straight at relevant drills. */
+const ATTR_TO_SKILL = {
+  shooting:'Shooting', passing:'Basketball IQ', defence:'Defence', conditioning:'Conditioning',
+  strength:'Conditioning', leadership:'Basketball IQ', communication:'Basketball IQ',
+  decisionMaking:'Basketball IQ', basketballIQ:'Basketball IQ', confidence:'Shooting', consistency:'Shooting'
+};
+function recommendDrills(attrs){
+  const skills = [...new Set(attrs.map(a=>ATTR_TO_SKILL[a]))];
+  return DB.training.drills.filter(d => skills.includes(d.skill)).slice(0,4);
+}
+
+/* ---------------------------------------------------------------
+   4. VIEWS
+   --------------------------------------------------------------- */
+function viewOnboarding(){
+  const roles = [
+    {id:'player', ic:'🏀', t:'Player', d:'Log games, train, level up your Player Card and chase fans & badges.'},
+    {id:'coach',  ic:'📋', t:'Coach',  d:'Guide athletes, run sessions, grow your Coach XP and reputation.'},
+    {id:'creator',ic:'🎬', t:'Creator',d:'Film highlights, grow fans, build your Creator track and brand.'},
+    {id:'admin',  ic:'🗂️', t:'Admin',  d:'Run leagues, courts and events on the Official track.'}
+  ];
+  return `
+  <div id="onboarding" class="court-texture">
+    <div class="ob-card">
+      <div class="ob-eyebrow">The XP Basketball League · The League OS</div>
+      <h1 class="ob-title">One league.<br><span>Every way to level up.</span></h1>
+      <p class="ob-sub">Basketball is the medium — the real product is your progression. Pick how you're joining the league to get your dashboard, badges, training and leaderboard set up.</p>
+      <div class="role-grid">
+        ${roles.map(r => `<div class="role-card" data-action="set-role" data-role="${r.id}"><div class="ric">${r.ic}</div><b>${r.t}</b><p>${r.d}</p></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function sidebarHTML(){
+  const groups = [
+    {group:'Play', links:[
+      {id:'dashboard', ic:'🏠', label:'Dashboard'},
+      {id:'mycard', ic:'🪪', label:'Your Card'},
+      {id:'quiz', ic:'🧩', label:'Playstyle Quiz'},
+      {id:'training', ic:'🎥', label:'Training & Clinics'},
+      {id:'log', ic:'📝', label:'Log Activity'},
+      {id:'clips', ic:'📼', label:'My Clips'}
+    ]},
+    {group:'League', links:[
+      {id:'teams', ic:'👥', label:'Teams'},
+      {id:'compete', ic:'🏅', label:'Compete'},
+      {id:'leaderboard', ic:'🏆', label:'Leaderboard'},
+      {id:'badges', ic:'🎖️', label:'Badges'},
+      {id:'community', ic:'💬', label:'Community Feed'}
+    ]},
+    {group:'Learn', links:[{id:'howitworks', ic:'❓', label:'How It Works'}]},
+    {group:'Organisation', links:[{id:'vision', ic:'📈', label:'The Vision'}]}
+  ];
+  const rm = ROLE_META[state.role] || ROLE_META.player;
+  return `
+  <aside id="sidebar">
+    <div class="brand"><div class="brand-mark">XP</div><div class="brand-text"><b>XP LEAGUE</b><span>Basketball OS</span></div></div>
+    <nav id="nav">
+      ${groups.map(g => `
+        <div class="nav-group-label">${g.group}</div>
+        ${g.links.map(l => `<div class="nav-item ${state.view===l.id?'active':''}" data-action="nav" data-view="${l.id}"><span class="nav-ic">${l.ic}</span>${l.label}</div>`).join('')}
+      `).join('')}
+    </nav>
+    <div class="sidebar-foot">
+      <div class="role-pill" data-action="nav" data-view="onboard-reset">
+        <div class="role-avatar">${rm.icon}</div><div class="role-meta"><b>${rm.label} mode</b><span>Switch role</span></div>
+      </div>
+      <div style="text-align:center; font-size:9.5px; color:var(--chalk-faint); margin-top:10px; letter-spacing:0.3px;">Run by <span style="color:var(--chalk-dim);">Full-Court Community</span></div>
+    </div>
+  </aside>`;
+}
+
+function topbarHTML(title, sub){
+  const p = DB.player;
+  return `
+  <div id="topbar">
+    <div><div class="page-title">${title}</div><div class="page-sub">${sub||''}</div></div>
+    <div class="quick-stats">
+      <div class="chip"><span class="dot" style="background:var(--xp)"></span>Lvl <b>${p.xpTracks.player.level}</b></div>
+      <div class="chip"><span class="dot" style="background:var(--fan)"></span><b>${p.fans.toLocaleString()}</b> fans</div>
+      <div class="chip"><span class="dot" style="background:var(--wood)"></span>Rep <b>${p.reputation}</b></div>
+      <div class="chip">🔥 <b>${p.streak}</b> day streak</div>
+    </div>
+  </div>`;
+}
+
+function viewDashboard(){
+  const p = DB.player;
+  const rm = ROLE_META[state.role] || ROLE_META.player;
+  const tracks = Object.entries(p.xpTracks);
+  const pathways = Object.entries(p.lifePathways);
+  const pathwayLabels = {athlete:'Athlete', leadership:'Leadership', coaching:'Coaching', community:'Community', creator:'Creator', professional:'Professional'};
+  const words = rm.headline.split(' ');
+  return `
+    <div class="hero card court-texture">
+      <div class="ob-eyebrow" style="margin-bottom:10px;">${rm.label.toUpperCase()} DASHBOARD</div>
+      <h1 class="hero-title">${words.slice(0,-2).join(' ')} <span class="accent">${words.slice(-2).join(' ')}</span></h1>
+      <p class="hero-text">${rm.sub}</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" data-action="nav" data-view="log">📝 Log activity</button>
+        <button class="btn" data-action="nav" data-view="training">🎥 Open training &amp; clinics</button>
+        <button class="btn" data-action="nav" data-view="mycard">🪪 View your card</button>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3 class="card-title">XP Progression <span class="badge-tag">5 tracks</span></h3>
+        <p class="card-desc">Every way you show up earns XP on its own track.</p>
+        ${tracks.map(([k,t]) => `
+          <div class="xp-track">
+            <div class="xp-track-ic">${t.icon}</div>
+            <div class="xp-track-body">
+              <div class="xp-track-top"><span>${t.label} · Lvl ${t.level}</span><b>${t.xp}/${t.next} XP</b></div>
+              <div class="bar mini"><i style="width:${pct(t.xp,t.next)}%"></i></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="card">
+        <h3 class="card-title">Life Progression System <span class="badge-tag">6 pathways</span></h3>
+        <p class="card-desc">Basketball is the medium — this is the real scoreboard.</p>
+        ${pathways.map(([k,v]) => `
+          <div class="pathway-row"><div class="pathway-label">${pathwayLabels[k]}</div><div class="bar wood" style="flex:1"><i style="width:${v}%"></i></div><div class="pathway-pct">${v}%</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="section-head"><div><h2>Active Challenges</h2><p>Daily and weekly targets — complete them for bonus XP.</p></div></div>
+    <div class="grid grid-3">
+      ${p.activeChallenges.map(c => `
+        <div class="card">
+          <h3 class="card-title">${c.title} <span class="badge-tag">${c.type}</span></h3>
+          <div class="card-desc">${c.progress}/${c.target} ${c.unit} · +${c.xp} XP on completion</div>
+          <div class="bar"><i style="width:${pct(c.progress,c.target)}%"></i></div>
+          <div style="margin-top:12px;"><button class="btn btn-sm btn-primary" data-action="progress-challenge" data-id="${c.id}">Log progress</button></div>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-head"><div><h2>Reputation &amp; Fans</h2><p>Community score and audience, side by side.</p></div></div>
+    <div class="grid grid-2">
+      <div class="card"><h3 class="card-title">Community Reputation <span class="badge-tag">${p.reputation} pts</span></h3><p class="card-desc">Earned by helping beginners, organising games, sportsmanship, attendance, coaching and content. <a href="#" data-action="nav" data-view="howitworks" style="color:var(--xp);">See how it's calculated →</a></p><div class="bar wood"><i style="width:${pct(p.reputation,1500)}%"></i></div></div>
+      <div class="card"><h3 class="card-title">Fan Base <span class="badge-tag">${p.fans.toLocaleString()} fans</span></h3><p class="card-desc">Fans rise and fall with verified performance and content. <a href="#" data-action="nav" data-view="howitworks" style="color:var(--xp);">See how it's calculated →</a></p><div class="bar fan"><i style="width:${pct(p.fans,5000)}%"></i></div></div>
+    </div>
+
+    <footer class="dev-note"><b>Dev note —</b> awardXP(track, amount) handles level-up math app-wide. DB.player.attributeEvidence
+      backs the fairness methodology on the "How It Works" page — keep both in sync if you change how evidence is weighted.</footer>
+  `;
+}
+
+function attrLabels(){ return {shooting:'Shooting',passing:'Passing',defence:'Defence',conditioning:'Conditioning',strength:'Strength',leadership:'Leadership',communication:'Communication',decisionMaking:'Decision Making',basketballIQ:'Basketball IQ',confidence:'Confidence',consistency:'Consistency'}; }
+
+function viewMyCard(){
+  if (state.role === 'coach') return viewRoleCard('coach');
+  if (state.role === 'creator') return viewRoleCard('creator');
+  if (state.role === 'admin') return viewRoleCard('official');
+  return viewPlayerCard();
+}
+
+function viewPlayerCard(){
+  const p = DB.player;
+  const hotClass = p.hotStreak>0 ? `hot-${Math.min(3,p.hotStreak)}` : '';
+  const labels = attrLabels();
+  const attrEntries = Object.entries(p.attributes);
+  return `
+    <div class="pcard-wrap">
+      <div class="pcard ${hotClass}">
+        <div class="pcard-inner">
+          <div class="pcard-top"><div class="pcard-lvl">LEVEL<b>${p.xpTracks.player.level}</b></div><div class="pcard-photo">${p.photo}</div></div>
+          <div class="pcard-name">${p.name}</div>
+          <div class="pcard-archetype">${p.archetype}</div>
+          <div class="pcard-meta"><span>${p.positionPrimary}</span><span>${p.height}</span><span>Age ${p.age}</span></div>
+          <div class="pcard-meta" style="margin-top:-6px;"><span>OVR ${p.overall}</span><span>${p.rank}</span><span>${p.league}</span></div>
+          <div class="pcard-attrs">
+            ${attrEntries.slice(0,6).map(([k,v]) => `<div class="attr-row"><div class="attr-row-top"><span>${labels[k]}</span><b>${v}</b></div><div class="bar mini"><i style="width:${v}%"></i></div></div>`).join('')}
+          </div>
+          <div class="pcard-foot">
+            <div class="fstat"><b>${p.streak}</b><span>Streak</span></div>
+            <div class="fstat"><b>${p.fans.toLocaleString()}</b><span>Fans</span></div>
+            <div class="fstat"><b>${p.reputation}</b><span>Rep</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pcard-side">
+        <div class="card"><h3 class="card-title">Playstyle</h3><p class="card-desc" style="margin-bottom:0;">${p.playstyle}</p>
+          <button class="btn btn-sm" style="margin-top:10px;" data-action="nav" data-view="quiz">Retake playstyle quiz</button>
+        </div>
+        <div class="grid grid-2">
+          <div class="card"><h3 class="card-title">Strengths</h3>${p.strengths.map(s=>`<div class="badge-tag" style="margin:0 6px 6px 0;">${s}</div>`).join('')}</div>
+          <div class="card"><h3 class="card-title">Weaknesses</h3>${p.weaknesses.map(s=>`<div class="badge-tag" style="margin:0 6px 6px 0; color:var(--danger); border-color:var(--danger);">${s}</div>`).join('')}</div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">All Attributes <span class="badge-tag">Ranked vs players at your level</span></h3>
+          <p class="card-desc">Confidence reflects how much verified evidence backs each number. <a href="#" data-action="nav" data-view="howitworks" style="color:var(--xp);">Full methodology →</a></p>
+          ${attrEntries.map(([k,v]) => {
+            const ev = p.attributeEvidence[k];
+            const topPct = 100 - ev.percentile;
+            return `<div class="attr-row" style="margin-bottom:10px;">
+              <div class="attr-row-top"><span>${labels[k]}</span><b>${v} · Top ${topPct}% at this level</b></div>
+              <div class="bar mini"><i style="width:${v}%"></i></div>
+              <div class="evidence-row"><span>${ev.reps.toLocaleString()} verified reps</span><span class="badge-tag conf-tag ${confClass(ev.confidence)}">${ev.confidence} confidence</span></div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="card">
+          <h3 class="card-title">Hot Streak FX <span class="badge-tag">${p.hotStreak}/3</span></h3>
+          <p class="card-desc">Card glow intensifies the more you perform in succession — simulate a big play to preview it.</p>
+          <div style="display:flex; gap:10px;"><button class="btn btn-primary" data-action="hot-streak-up">🔥 Log a great play</button><button class="btn" data-action="hot-streak-reset">Reset</button></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function viewRoleCard(role){
+  const rc = DB.roleCards[role];
+  const t = DB.player.xpTracks[role];
+  const configs = {
+    coach:{title:'Coach Card', stats:[['Athletes coached', rc.athletesCoached],['Sessions run', rc.sessionsRun],['Avg athlete improvement', rc.avgImprovement]], badge:'coach', lb:'coaches'},
+    creator:{title:'Creator Card', stats:[['Highlights produced', rc.highlightsProduced],['Total views', rc.totalViews],['30-day fan growth', rc.fanGrowth30d],['Engagement rate', rc.engagementRate]], badge:'creator', lb:'creators'},
+    official:{title:'Official Card', stats:[['Matches officiated', rc.matchesOfficiated],['Accuracy rating', rc.accuracyRating]], badge:'official', lb:'officials'}
+  };
+  const cfg = configs[role];
+  return `
+    <div class="pcard-wrap">
+      <div class="pcard">
+        <div class="pcard-inner">
+          <div class="pcard-top"><div class="pcard-lvl">LEVEL<b>${t.level}</b></div><div class="pcard-photo">${rc.icon}</div></div>
+          <div class="pcard-name">${rc.name}</div>
+          <div class="pcard-archetype">${cfg.title}</div>
+          <div class="pcard-meta">${cfg.stats.map(s=>`<span>${s[0]}: ${s[1]}</span>`).join('')}</div>
+          <div class="pcard-foot">
+            <div class="fstat"><b>${DB.player.streak}</b><span>Streak</span></div>
+            <div class="fstat"><b>${DB.player.fans.toLocaleString()}</b><span>Fans</span></div>
+            <div class="fstat"><b>${DB.player.reputation}</b><span>Rep</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pcard-side">
+        <div class="card"><h3 class="card-title">Specialties</h3>${rc.specialties.map(s=>`<div class="badge-tag" style="margin:0 6px 6px 0;">${s}</div>`).join('')}</div>
+        <div class="card"><h3 class="card-title">Certifications</h3>${(rc.certifications||['None yet']).map(s=>`<div class="badge-tag" style="margin:0 6px 6px 0;">${s}</div>`).join('')}</div>
+        <div class="card">
+          <h3 class="card-title">${cfg.title} XP</h3>
+          <div class="xp-track-top"><span>Level ${t.level}</span><b>${t.xp}/${t.next} XP</b></div>
+          <div class="bar mini"><i style="width:${pct(t.xp,t.next)}%"></i></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-sm" data-action="nav" data-view="badges">View ${role} badges</button>
+            <button class="btn btn-sm" data-action="nav" data-view="leaderboard">View ${cfg.lb} leaderboard</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function viewQuiz(){
+  if (!state.quiz) quizInit();
+  const q = state.quiz;
+  if (q.done){
+    const sorted = Object.entries(q.scores).sort((a,b)=>b[1]-a[1]);
+    const labels = attrLabels();
+    const [topId, topScore] = sorted[0];
+    const [secondId, secondScore] = sorted[1] || [null, 0];
+    const isHybrid = secondId && topScore > 0 && secondScore >= topScore * 0.75;
+    const top = ARCHETYPES[topId];
+    const second = isHybrid ? ARCHETYPES[secondId] : null;
+    const nickname = isHybrid ? generateHybridNickname(topId, secondId) : null;
+
+    const displayName = isHybrid ? `"${nickname}"` : top.name;
+    const displayIcon = isHybrid ? `${top.icon}${second.icon}` : top.icon;
+    const displayDesc = isHybrid
+      ? `A hybrid build: mostly ${top.name.toLowerCase()} (${top.desc}) with real ${second.name.toLowerCase()} tendencies too (${second.desc})`
+      : top.desc;
+
+    const emphasizeSet = [...new Set(isHybrid ? [...top.emphasize, ...second.emphasize] : top.emphasize)];
+    const playerAttrs = DB.player.attributes;
+    const growthAreas = Object.keys(playerAttrs)
+      .filter(k => !emphasizeSet.includes(k))
+      .sort((a,b) => playerAttrs[a]-playerAttrs[b])
+      .slice(0,3);
+    const drills = recommendDrills(emphasizeSet);
+    const tips = isHybrid ? [top.tip, second.tip] : [top.tip];
+
+    const applyBtn = isHybrid
+      ? `<button class="btn btn-primary" data-action="apply-archetype" data-hybrid="1" data-arch="${topId}" data-arch-b="${secondId}" data-nickname="${esc(nickname)}">Set as my archetype</button>`
+      : `<button class="btn btn-primary" data-action="apply-archetype" data-arch="${topId}">Set as my archetype</button>`;
+
+    return `
+      <div class="card">
+        <div class="result-arch">
+          <div class="ric">${displayIcon}</div><h2>${displayName}</h2>
+          ${isHybrid ? `<div class="badge-tag" style="margin-bottom:8px;">Hybrid build</div>` : ''}
+          <p class="card-desc" style="max-width:520px; margin:0 auto;">${displayDesc}</p>
+        </div>
+        <div class="grid grid-2">
+          <div>
+            <h3 class="card-title">Your top matches</h3>
+            ${sorted.slice(0,4).map(([id,score]) => `<div class="xp-track-top" style="margin-top:8px;"><span>${ARCHETYPES[id].icon} ${ARCHETYPES[id].name}</span><b>${score} pts</b></div><div class="bar mini"><i style="width:${pct(score, sorted[0][1]||1)}%"></i></div>`).join('')}
+          </div>
+          <div>
+            <h3 class="card-title">Character strengths</h3>
+            ${emphasizeSet.map(a=>`<div class="badge-tag" style="margin:0 6px 6px 0;">${labels[a]}</div>`).join('')}
+            <h3 class="card-title" style="margin-top:16px;">Growth areas</h3>
+            ${growthAreas.map(a=>`<div class="badge-tag" style="margin:0 6px 6px 0; color:var(--danger); border-color:var(--danger);">${labels[a]}</div>`).join('')}
+          </div>
+        </div>
+
+        <h3 class="card-title" style="margin-top:22px;">Training methodology — how to lean into this build</h3>
+        ${tips.map(t=>`<p class="card-desc">${t}</p>`).join('')}
+        ${drills.length ? `
+          <div class="grid grid-2" style="margin-top:6px;">
+            ${drills.map(d=>`<div class="card" style="background:var(--surface-alt);"><h3 class="card-title" style="font-size:13.5px;">${d.title} <span class="badge-tag diff">${d.difficulty}</span></h3><div class="card-desc">${d.skill} · +${d.xp} XP</div></div>`).join('')}
+          </div>` : ''}
+
+        <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+          ${applyBtn}
+          <button class="btn" data-action="restart-quiz">Retake quiz</button>
+          <button class="btn" data-action="toggle-how" data-id="archlib">Browse all archetypes</button>
+        </div>
+        ${state.howOpen.archlib ? `
+          <div class="accordion-body" style="margin-top:16px;">
+            <div class="grid grid-3">
+              ${Object.values(ARCHETYPES).map(a=>`<div class="card" style="background:var(--surface-alt);"><h3 class="card-title" style="font-size:13.5px;">${a.icon} ${a.name}</h3><p class="card-desc" style="margin-bottom:0;">${a.desc}</p></div>`).join('')}
+            </div>
+          </div>` : ''}
+      </div>`;
+  }
+  const question = QUIZ_QUESTIONS.find(x=>x.id===q.currentQ);
+  return `
+    <div class="card" style="max-width:640px;">
+      <div class="quiz-progress">${Array.from({length:6}).map((_,i)=>`<i class="${i<q.askedIds.length?'done':''}"></i>`).join('')}</div>
+      <div class="ob-eyebrow">Scenario ${q.askedIds.length+1} of up to 6</div>
+      <h2 class="quiz-scenario">${question.scenario}</h2>
+      ${question.options.map((o,i) => `<button class="quiz-opt" data-action="quiz-answer" data-qid="${question.id}" data-oidx="${i}">${o.text}</button>`).join('')}
+      <p class="card-desc" style="margin-top:10px;">Questions narrow toward whichever of the ${Object.keys(ARCHETYPES).length} archetypes your answers are pointing at — you likely won't see every scenario.</p>
+    </div>`;
+}
+
+function viewTeams(){
+  const t = DB.teams;
+  return `
+    <div class="section-head"><div><h2>Create a Team</h2><p>Teams, brands and crews — with a logo, colours, motto and home court.</p></div></div>
+    <div class="card" style="margin-bottom:26px;">
+      <form data-action="create-team-form">
+        <div class="grid grid-3">
+          <div class="field"><label>Team name</label><input name="name" placeholder="e.g. Deptford Dunkers" required></div>
+          <div class="field"><label>Motto</label><input name="motto" placeholder="e.g. No easy buckets"></div>
+          <div class="field"><label>Home court</label><input name="court" placeholder="e.g. Deptford Park Courts"></div>
+        </div>
+        <p class="card-desc">New team logos are queued for league review before they go live — this keeps imagery appropriate across the whole league.</p>
+        <button class="btn btn-primary" type="submit">Register team</button>
+      </form>
+    </div>
+
+    <div class="section-head"><div><h2>Teams in the League</h2><p>${t.length} registered crews competing for fans and XP.</p></div></div>
+    <div class="grid grid-3">
+      ${t.map(team => `
+        <div class="card team-card">
+          <div class="team-colorbar" style="background:${team.color}"></div>
+          <div class="team-head">
+            <div class="team-logo">${team.logo}</div>
+            <div><div class="team-name">${esc(team.name)}</div><div class="team-motto">${esc(team.motto)||'—'}</div></div>
+          </div>
+          <div style="margin-top:10px;"><span class="badge-tag ${team.logoStatus==='pending'?'pill-pending':'pill-approved'}">${team.logoStatus==='pending'?'Logo pending review':'Logo approved'}</span></div>
+          <div class="team-stats">
+            <div><b>${team.level}</b>Level</div><div><b>${team.fans.toLocaleString()}</b>Fans</div>
+            <div><b>${team.roster}</b>Roster</div><div><b>${team.accolades}</b>Accolades</div>
+          </div>
+          <div style="margin-top:14px; font-size:11.5px; color:var(--chalk-faint);">🏟️ ${esc(team.court)}</div>
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="btn btn-sm" data-action="join-team" data-id="${team.id}">Request to join</button>
+            ${team.logoStatus==='pending' && state.role==='admin' ? `<button class="btn btn-sm btn-primary" data-action="approve-logo" data-id="${team.id}">Approve logo</button>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function viewCompete(){
+  const c = DB.competitions;
+  const teamOptions = DB.teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  return `
+    <div class="section-head"><div><h2>Compete</h2><p>Paid registered team competitions across every format.</p></div></div>
+    <div class="grid grid-2">
+      ${c.map(comp => `
+        <div class="card">
+          <h3 class="card-title">${comp.name} <span class="badge-tag">${comp.format}</span></h3>
+          <div class="card-desc">${comp.dates} · <span class="comp-fee">${comp.fee}</span></div>
+          <div class="slots-bar"><div class="bar wood"><i style="width:${pct(comp.filled,comp.slots)}%"></i></div></div>
+          <div style="font-size:11.5px; color:var(--chalk-faint); margin-bottom:12px;">${comp.filled}/${comp.slots} team slots filled</div>
+          <form data-action="register-comp-form" data-comp="${comp.id}">
+            <div class="field"><label>Register which team?</label><select name="team">${teamOptions}</select></div>
+            <button class="btn btn-primary btn-block" type="submit">Pay ${comp.fee} &amp; register</button>
+          </form>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-head"><div><h2>My Registrations</h2><p></p></div></div>
+    <div class="card">
+      ${DB.player.registrations.length===0 ? `<div class="empty"><b>No competitions registered yet</b>Register a team above to see it here.</div>` :
+      `<table class="lb"><thead><tr><th>Competition</th><th>Format</th><th>Team</th><th>Status</th></tr></thead><tbody>
+        ${DB.player.registrations.map(r=>`<tr><td>${esc(r.comp)}</td><td>${r.format}</td><td>${esc(r.team)}</td><td><span class="badge-tag pill-approved">Confirmed</span></td></tr>`).join('')}
+      </tbody></table>`}
+    </div>`;
+}
+
+function viewTraining(){
+  if (!state.trainTab) state.trainTab = (ROLE_META[state.role]||ROLE_META.player).trainTab;
+  const tabMeta = {drills:'Drills', clinics:'Coaching Clinics', content:'Content Tutorials', officiating:'Officiating Modules'};
+  const items = DB.training[state.trainTab];
+  return `
+    <div class="section-head"><div><h2>Training &amp; Clinics</h2><p>Tailored library per role — drills, clinics, content tutorials and officiating modules.</p></div></div>
+    <div class="tabs" style="margin-bottom:20px;">
+      ${Object.entries(tabMeta).map(([k,label]) => `<div class="tab ${state.trainTab===k?'active':''}" data-action="train-tab" data-tab="${k}">${label}</div>`).join('')}
+    </div>
+    <div class="grid grid-3">
+      ${items.map(tr => `
+        <div class="card train-card">
+          <div class="video-ph">▶️</div>
+          <h3 class="card-title">${tr.title} <span class="badge-tag diff">${tr.difficulty}</span></h3>
+          <div class="train-meta">
+            <span class="badge-tag">🎯 ${tr.skill}</span><span class="badge-tag">⏱ ${tr.time}</span>
+            <span class="badge-tag">🧰 ${tr.equipment}</span><span class="badge-tag">Lvl ${tr.recLevel}</span>
+          </div>
+          <div style="font-size:11.5px; color:var(--chalk-faint); margin-bottom:12px;">${tr.completion} completion rate · ★ ${tr.rating} rating · +${tr.xp} XP</div>
+          <button class="btn btn-primary btn-block" data-action="complete-training" data-id="${tr.id}" data-xp="${tr.xp}" data-title="${esc(tr.title)}" data-track="${state.trainTab==='drills'?'player':state.trainTab==='clinics'?'coach':state.trainTab==='content'?'creator':'official'}">Mark complete &amp; record</button>
+        </div>`).join('')}
+    </div>
+    <footer class="dev-note"><b>Dev note —</b> "Mark complete" simulates the recording step described in the app's evidence
+      system. In production this fires the device camera / a coach-witness confirmation flow before XP is granted —
+      see completeTraining() and the "How It Works → Evidence &amp; Fair Play" copy for the intended rules.</footer>`;
+}
+
+function viewClips(){
+  const clips = DB.player.clips;
+  return `
+    <div class="section-head"><div><h2>My Clips</h2><p>Every recorded drill, saved to your personal, private catalogue.</p></div></div>
+    <div class="grid grid-3">
+      ${clips.length===0 ? `<div class="empty" style="grid-column:1/-1;"><b>No clips yet</b>Complete a drill in Training &amp; Clinics to save your first one.</div>` :
+      clips.map(c => `
+        <div class="card clip-card" data-action="toggle-clip" data-id="${c.id}">
+          <div class="clip-thumb">🎬</div>
+          <h3 class="card-title" style="font-size:14.5px;">${esc(c.title)}</h3>
+          <div class="card-desc">${c.date} · ${c.duration}</div>
+          ${state.badgeOpen==='clip-'+c.id ? `<div class="clip-expand">▶️ Playing locally — visible only to you.<br><br>${esc(c.note)}</div>` : `<div class="badge-tag">Tap to watch &amp; see notes</div>`}
+        </div>`).join('')}
+    </div>
+
+    <div class="section-head"><div><h2>AI Minigames <span class="badge-tag">Paid tier</span></h2><p>Skill-building minigames, each pairing a specific AI/computer-vision technique with a specific skill gap.</p></div></div>
+    <div class="grid grid-3">
+      ${DB.minigames.map(m => {
+        const open = state.badgeOpen === 'mg-'+m.id;
+        return `<div class="card clip-card" data-action="toggle-mg" data-id="${m.id}">
+          <h3 class="card-title" style="font-size:14.5px;">${m.title} <span class="badge-tag">${m.tag}</span></h3>
+          <p class="card-desc">${m.desc}</p>
+          <div class="badge-tag" style="margin-bottom:8px;">⚙️ ${m.tech}</div>
+          ${open ? `<div class="clip-expand">${m.detail}</div>` : `<div class="badge-tag">Tap to see how the AI works</div>`}
+          <div style="margin-top:12px;"><button class="btn btn-sm btn-wood" data-action="play-minigame" data-name="${esc(m.title)}">Play (simulated)</button></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function viewLog(){
+  const role = state.role || 'player';
+  const gameTypes = ['1v1','2v2','3v3','4v4','5v5','HORSE','21','American 21','King of the Court','Pickup','League','Tournament'];
+  const forms = {
+    player: `
+      <div class="field"><label>Game type</label><select name="type">${gameTypes.map(g=>`<option>${g}</option>`).join('')}</select></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Points</label><input name="pts" type="number" min="0" value="0"></div>
+        <div class="field"><label>Assists</label><input name="ast" type="number" min="0" value="0"></div>
+        <div class="field"><label>Rebounds</label><input name="reb" type="number" min="0" value="0"></div>
+        <div class="field"><label>Minutes</label><input name="min" type="number" min="0" value="20"></div>
+      </div>
+      <div class="field"><label>Result</label><input name="result" placeholder="e.g. W 21–17"></div>
+      <div class="field"><label>Confirmed by</label><input name="witness" placeholder="Opponent or referee name — required for XP"></div>`,
+    coach: `
+      <div class="field"><label>Session type</label><select name="type"><option>Skill clinic</option><option>Team practice</option><option>1-on-1 mentoring</option></select></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Athletes attended</label><input name="attendees" type="number" min="0" value="1"></div>
+        <div class="field"><label>Duration (min)</label><input name="min" type="number" min="0" value="45"></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="2" placeholder="What did the session cover?"></textarea></div>
+      <div class="field"><label>Confirmed by</label><input name="witness" placeholder="An athlete or league admin — required for XP"></div>`,
+    creator: `
+      <div class="field"><label>Content type</label><select name="type"><option>Highlight clip</option><option>Livestream</option><option>Interview</option><option>Recap</option></select></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Platform</label><input name="platform" placeholder="e.g. league app feed"></div>
+        <div class="field"><label>Views (est.)</label><input name="views" type="number" min="0" value="0"></div>
+      </div>
+      <div class="field"><label>Link / notes</label><input name="notes" placeholder="Optional link or description"></div>`,
+    admin: `
+      <div class="field"><label>Match type officiated</label><select name="type">${gameTypes.map(g=>`<option>${g}</option>`).join('')}</select></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Role</label><select name="offrole"><option>Referee</option><option>Scorekeeper</option></select></div>
+        <div class="field"><label>Disputes mediated</label><input name="disputes" type="number" min="0" value="0"></div>
+      </div>
+      <div class="field"><label>Confirmed by</label><input name="witness" placeholder="Another official or league admin — required for XP"></div>`
+  };
+  const cycleTabMeta = {prepare:'1 · Preparation', perform:'2 · Performance', reflect:'3 · Reflection'};
+  const cycleBodies = {
+    prepare: `
+      <p class="card-desc">Two minutes before you play — organisation, visualisation and routine.</p>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+        <span class="badge-tag">Organisation</span><span class="badge-tag">Visualisation</span><span class="badge-tag">Routines</span>
+      </div>
+      <ul style="font-size:13px; color:var(--chalk-dim); line-height:1.9; padding-left:18px; margin:0 0 16px;">
+        <li>What's the one thing you want to walk away better at today?</li>
+        <li>Picture your first three touches of the ball — what do they look like?</li>
+        <li>What's your routine before you shoot? Say it in your head right now.</li>
+      </ul>
+      <form data-action="prepare-cue-form">
+        <div class="field"><label>Today's cue word — come back to it if things go wrong</label><input name="cue" placeholder="e.g. Steady" value="${esc(state.cueWord||'')}"></div>
+        <button class="btn btn-primary btn-sm" type="submit">Set cue word</button>
+      </form>
+      <div style="margin-top:16px;">${accordionPanel('cueword', "What's a cue word, and how do I use mine?", `
+        <p style="margin-top:0;">A cue word is a short, personally meaningful word or phrase you say in your head to trigger a mental and physical state you've already rehearsed — it isn't a generic slogan, it's a private shortcut back to a routine you've drilled hundreds of times.</p>
+        <p><b style="color:var(--chalk);">Why it works:</b> research on self-talk in sport finds it most effective for tasks needing precision and focus — like shooting — because it interrupts an anxious or distracted train of thought and re-engages a rehearsed routine faster than consciously thinking it through.</p>
+        <h4>How to build your own</h4>
+        <ul>
+          <li><b style="color:var(--chalk);">Keep it short and personal</b> — one or two syllables, and something that means something to you specifically, not a borrowed slogan.</li>
+          <li><b style="color:var(--chalk);">Attach it to something physical</b> — a breath, a dribble, a foot-set — so it's reinforced by the body, not just the mind.</li>
+          <li><b style="color:var(--chalk);">Drill it in low-stakes practice first</b> — a cue word only works under pressure if it's already been repeated calmly, hundreds of times, before you ever need it in a game.</li>
+          <li><b style="color:var(--chalk);">Save it for the moment it matters</b> — after a mistake, before a free throw, entering crunch time — using it constantly wears out its power.</li>
+          <li><b style="color:var(--chalk);">Revisit it each season</b> — as your game and mindset change, your cue word can too.</li>
+        </ul>`)}</div>`,
+    perform: `
+      <p class="card-desc">Quick checks for natural breaks in play — water breaks, drill changeovers — covering self-talk, focus and managing emotions.</p>
+      ${state.cueWord ? `<div class="badge-tag" style="margin-bottom:14px;">Your cue word: "${esc(state.cueWord)}"</div>` : `<p class="card-desc">Set a cue word in Preparation first.</p>`}
+      <p style="font-size:12.5px; color:var(--chalk-dim); margin-bottom:8px;">One tap: how are you feeling right now?</p>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        ${['😤','😕','😐','🙂','🔥'].map((em,i)=>`<button class="btn btn-sm ${state.mood===i?'btn-primary':''}" data-action="set-mood" data-mood="${i}">${em}</button>`).join('')}
+      </div>
+      <p class="card-desc">Reset focus with box breathing — 4 seconds in, 4 seconds hold, 4 seconds out, repeated 4 times.</p>`,
+    reflect: `
+      <p class="card-desc">Two minutes after you play — journal, coach feedback, video analysis and your performance log, in one place.</p>
+      <form data-action="reflect-form">
+        <div class="field"><label>Journal — what happened today, and how did it feel?</label><textarea name="j1" rows="2" placeholder="Type or dictate a quick note..."></textarea></div>
+        <div class="field"><label>One thing that went well, one that didn't</label><textarea name="j2" rows="2"></textarea></div>
+        <div class="field"><label>What will you do differently next time?</label><textarea name="j3" rows="2"></textarea></div>
+        <button class="btn btn-primary" type="submit">Log reflection · +15 XP</button>
+      </form>
+      <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card" style="background:var(--surface-alt);"><h3 class="card-title" style="font-size:13.5px;">Coach feedback</h3><p class="card-desc" style="margin-bottom:0;">${esc(DB.player.coachNote)}</p></div>
+        <div class="card" style="background:var(--surface-alt);"><h3 class="card-title" style="font-size:13.5px;">Video analysis</h3><p class="card-desc">Review the clip that goes with today's reflection.</p><button class="btn btn-sm" data-action="nav" data-view="clips">Open My Clips</button></div>
+      </div>
+      <p class="card-desc" style="margin-top:12px;">Your performance log — XP, REP and match history — sits in Recent Matches below, dated alongside this reflection.</p>`
+  };
+  return `
+    <div class="section-head"><div><h2>Log Activity</h2><p>Every entry needs confirmation from someone else before XP is granted — see Evidence &amp; Fair Play.</p></div></div>
+
+    <div class="section-head" style="margin-top:0;"><div><h2>The Come-Up Cycle</h2><p>Prepare, perform and reflect — every session, in three short steps.</p></div></div>
+    <div class="card" style="margin-bottom:26px;">
+      <div class="tabs" style="margin-bottom:18px;">${Object.entries(cycleTabMeta).map(([k,l])=>`<div class="tab ${state.cycleTab===k?'active':''}" data-action="cycle-tab" data-tab="${k}">${l}</div>`).join('')}</div>
+      ${cycleBodies[state.cycleTab]}
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3 class="card-title">Log as ${ROLE_META[role].label} <span class="badge-tag">Free tier</span></h3>
+        <form data-action="log-activity-form" data-role="${role}">
+          ${forms[role]}
+          <button class="btn btn-primary btn-block" type="submit">Save &amp; submit for confirmation</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3 class="card-title">AI Session Recording <span class="badge-tag">Paid tier</span></h3>
+        <p class="card-desc">Point your camera at the court. The AI tracks stats automatically, gives live feedback, auto-generates highlight clips for your personal catalogue, and layers visual effects onto players who chain great plays back-to-back — all cross-checked against the recording instead of self-reported.</p>
+        <div class="video-ph" style="height:150px;">🎥 Camera preview</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0;">
+          <span class="badge-tag">📷 Camera tracking</span><span class="badge-tag">🔊 Net-sound check</span><span class="badge-tag">📍 Court check-in</span><span class="badge-tag">📈 Trend match</span>
+        </div>
+        <button class="btn" disabled>Upgrade to enable (prototype)</button>
+      </div>
+    </div>
+
+    <div class="section-head"><div><h2>Major Milestones <span class="badge-tag">Up to 10,000 XP</span></h2><p>Rare, high-value achievements — always reviewed by a league admin before XP is granted, not self-awarded.</p></div></div>
+    <div class="grid grid-3">
+      ${DB.milestones.map(m => {
+        const pending = DB.player.pendingMilestones.find(p=>p.id===m.id);
+        return `<div class="card">
+          <h3 class="card-title" style="font-size:14.5px;">${m.title} <span class="badge-tag">${m.tier}</span></h3>
+          <p class="card-desc">${m.desc}</p>
+          <div class="badge-tag" style="margin-bottom:10px;">+${m.xp.toLocaleString()} XP · ${m.track} track</div>
+          ${pending
+            ? `<span class="badge-tag ${pending.status==='approved'?'pill-approved':'pill-pending'}">${pending.status==='approved'?'Approved — XP granted':'Pending admin review'}</span>
+               ${(pending.status==='pending' && state.role==='admin') ? `<button class="btn btn-sm btn-primary" style="margin-left:8px;" data-action="approve-milestone" data-id="${m.id}">Approve</button>` : ''}`
+            : `<button class="btn btn-sm" data-action="log-milestone" data-id="${m.id}">Submit for review</button>`}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section-head"><div><h2>Recent Matches</h2><p></p></div></div>
+    <div class="card"><table class="lb"><thead><tr><th>Date</th><th>Type</th><th>Result</th><th>Notes</th></tr></thead><tbody>
+      ${DB.matches.map(m => `<tr><td>${m.date}</td><td>${m.type}</td><td>${m.result}</td><td>${m.note}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function viewLeaderboard(){
+  const tabs = {players:'Players', teams:'Teams', coaches:'Coaches', creators:'Creators', officials:'Officials'};
+  let tableHTML = '';
+  if (state.lbTab === 'players'){
+    const rows = [...DB.leaderboards.players].sort((a,b)=>b[state.lbSort==='fans'?'fans':'level']-a[state.lbSort==='fans'?'fans':'level']);
+    tableHTML = `<table class="lb"><thead><tr><th>#</th><th>Player</th><th>Team</th><th>Archetype</th><th>Level</th><th>Fans</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr><td class="rank-num">${i+1}</td><td>${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.archetype)}</td><td>${r.level}</td><td>${r.fans.toLocaleString()}</td></tr>`).join('')}
+    </tbody></table>`;
+  } else if (state.lbTab === 'teams'){
+    const rows = [...DB.teams].sort((a,b)=>b[state.lbSort==='fans'?'fans':'level']-a[state.lbSort==='fans'?'fans':'level']);
+    tableHTML = `<table class="lb"><thead><tr><th>#</th><th>Team</th><th>Home court</th><th>Level</th><th>Fans</th><th>Accolades</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr><td class="rank-num">${i+1}</td><td>${esc(r.name)}</td><td>${esc(r.court)}</td><td>${r.level}</td><td>${r.fans.toLocaleString()}</td><td>${r.accolades}</td></tr>`).join('')}
+    </tbody></table>`;
+  } else if (state.lbTab === 'coaches'){
+    const rows = [...DB.leaderboards.coaches].sort((a,b)=>b.level-a.level);
+    tableHTML = `<table class="lb"><thead><tr><th>#</th><th>Coach</th><th>Level</th><th>Athletes coached</th><th>Reputation</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr><td class="rank-num">${i+1}</td><td>${esc(r.name)}</td><td>${r.level}</td><td>${r.athletesCoached}</td><td>${r.rep}</td></tr>`).join('')}
+    </tbody></table>`;
+  } else if (state.lbTab === 'creators'){
+    const rows = [...DB.leaderboards.creators].sort((a,b)=>b.fans-a.fans);
+    tableHTML = `<table class="lb"><thead><tr><th>#</th><th>Creator</th><th>Level</th><th>Fans</th><th>Views</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr><td class="rank-num">${i+1}</td><td>${esc(r.name)}</td><td>${r.level}</td><td>${r.fans.toLocaleString()}</td><td>${r.views}</td></tr>`).join('')}
+    </tbody></table>`;
+  } else {
+    const rows = [...DB.leaderboards.officials].sort((a,b)=>b.level-a.level);
+    tableHTML = `<table class="lb"><thead><tr><th>#</th><th>Official</th><th>Level</th><th>Matches officiated</th><th>Accuracy</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr><td class="rank-num">${i+1}</td><td>${esc(r.name)}</td><td>${r.level}</td><td>${r.matchesOfficiated}</td><td>${r.accuracy}</td></tr>`).join('')}
+    </tbody></table>`;
+  }
+  return `
+    <div class="section-head"><div><h2>Leaderboard</h2><p>Every role has its own board.</p></div></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+      <div class="tabs">${Object.entries(tabs).map(([k,l])=>`<div class="tab ${state.lbTab===k?'active':''}" data-action="lb-tab" data-tab="${k}">${l}</div>`).join('')}</div>
+      ${(state.lbTab==='players'||state.lbTab==='teams') ? `<div class="tabs"><div class="tab ${state.lbSort==='level'?'active':''}" data-action="lb-sort" data-sort="level">By level</div><div class="tab ${state.lbSort==='fans'?'active':''}" data-action="lb-sort" data-sort="fans">By fans</div></div>` : ''}
+    </div>
+    <div class="card">${tableHTML}</div>`;
+}
+
+function viewBadges(){
+  if (!state.badgeCat) state.badgeCat = (ROLE_META[state.role]||ROLE_META.player).badgeCat;
+  const cats = {player:'Player', community:'Community', creator:'Creator', coach:'Coach', official:'Official'};
+  let list = DB.badges[state.badgeCat];
+  const subs = state.badgeCat==='player' ? ['All', ...new Set(list.map(b=>b.sub))] : null;
+  if (subs && state.badgeSub && state.badgeSub!=='All') list = list.filter(b=>b.sub===state.badgeSub);
+  return `
+    <div class="section-head"><div><h2>Badges</h2><p>Evidence-based tiers — click a badge to see progress toward the next one.</p></div></div>
+    <div class="tabs" style="margin-bottom:14px;">${Object.entries(cats).map(([k,l])=>`<div class="tab ${state.badgeCat===k?'active':''}" data-action="badge-cat" data-cat="${k}">${l}</div>`).join('')}</div>
+    ${subs ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">${subs.map(s=>`<div class="chip-filter ${state.badgeSub===s?'active':''}" data-action="badge-sub" data-sub="${s}">${s}</div>`).join('')}</div>` : ''}
+    <div class="grid grid-3">
+      ${list.map(b => {
+        const open = state.badgeOpen === b.id;
+        return `<div class="card badge-card" data-action="toggle-badge" data-id="${b.id}">
+          <div class="badge-head"><div class="badge-ic">${b.icon}</div><div><div style="font-family:var(--font-heading); font-size:16px;">${b.name}</div><div style="font-size:11px; color:var(--chalk-faint);">${b.sub}</div></div></div>
+          <p class="card-desc" style="margin-top:10px;">${b.desc}</p>
+          ${open ? b.tiers.map(t => `<div class="tier-row ${b.progress>=t.req?'done':''}"><div class="tname">${t.name}</div><div class="bar mini" style="flex:1"><i style="width:${pct(b.progress,t.req)}%"></i></div><div class="tnum">${Math.min(b.progress,t.req).toLocaleString()}/${t.req.toLocaleString()}</div></div>`).join('') : `<div class="badge-tag">Tap to view tier progress</div>`}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function viewCommunity(){
+  return `
+    <div class="section-head"><div><h2>Community Feed</h2><p>Highlights, milestones and league chatter.</p></div></div>
+    <div class="card" style="margin-bottom:20px;"><form data-action="new-post-form"><div class="field"><textarea name="text" rows="2" placeholder="Share a highlight, a milestone, a shoutout..."></textarea></div><button class="btn btn-primary" type="submit">Post to feed</button></form></div>
+    <div class="card" id="feed-list">
+      ${DB.feed.map(f => `<div class="post"><div class="post-avatar">${f.avatar}</div><div class="post-body"><span class="post-name">${esc(f.name)}</span><span class="post-role">${esc(f.role)}</span><p class="post-text">${esc(f.text)}</p><div class="post-actions"><span data-action="like-post" data-id="${f.id}">❤️ ${f.likes}</span><span>💬 ${f.comments}</span><span>↗ Share</span></div></div></div>`).join('')}
+    </div>`;
+}
+
+function accordionPanel(id, title, bodyHTML){
+  const open = !!state.howOpen[id];
+  return `<div class="card"><div class="accordion-head" data-action="toggle-how" data-id="${id}"><h3 class="card-title" style="margin:0;">${title}</h3><span class="accordion-chevron">${open?'▲':'▼'}</span></div>${open?`<div class="accordion-body">${bodyHTML}</div>`:''}</div>`;
+}
+
+function viewHowItWorks(){
+  const xpBody = `
+    <h4>The XP scale — four tiers, up to 10,000</h4>
+    <p style="margin-top:0;">XP is deliberately not flat. Routine actions stay small so levels still take real time; rare, heavily-verified achievements can be worth hundreds of times more, so a single logged pickup game never feels equal to a verified league championship.</p>
+    <ul>
+      <li><b style="color:var(--chalk);">Routine (5–50 XP)</b> — attendance, small logged drills, casual pickup games. Self-reported, lightly checked.</li>
+      <li><b style="color:var(--chalk);">Standard (50–300 XP)</b> — a full witnessed match, a coached session, published content. Needs a confirming witness.</li>
+      <li><b style="color:var(--chalk);">Significant (300–1,500 XP)</b> — a completed certification, a coach-verified skills combine, a tracked personal best. Needs recorded or coach-witnessed evidence.</li>
+      <li><b style="color:var(--chalk);">Rare / major (1,500–10,000 XP)</b> — a verified tournament win, a season MVP, a Master Coach qualification, a league championship. Always queued for league admin review before XP is granted — see Major Milestones on the Log Activity page.</li>
+    </ul>
+    <h4>Player XP — ways to earn</h4><ul>
+      <li>Log a verified match or scrimmage (confirmed by an opponent, teammate or referee) — weighted by format, from a Pickup run up to a full Tournament</li>
+      <li>Complete a recorded training drill — weighted by difficulty, from Beginner up to Elite</li>
+      <li>Hit a personal best on a tracked drill</li>
+      <li>Maintain a play streak (consecutive days logging verified court time)</li>
+      <li>Complete daily, weekly and season-long challenges</li>
+      <li>Cross a milestone on any attribute</li>
+      <li>Submit a Major Milestone (tournament win, MVP, championship) for admin-verified XP up to 10,000</li></ul>
+    <h4>Community XP — ways to earn</h4><ul>
+      <li>Volunteer at league events</li><li>Organise or host a pickup session</li>
+      <li>Mentor a beginner (confirmed by the mentee)</li><li>Attend league-run community days</li>
+      <li>Contribute to fundraising events</li><li>Keep a clean conduct record across a season</li></ul>
+    <h4>Creator XP — ways to earn</h4><ul>
+      <li>Publish a highlight clip or recap</li><li>Grow fan count through content</li>
+      <li>Host or produce a livestream</li><li>Get featured on the Community Feed</li>
+      <li>Maintain a posting streak</li><li>Produce a long-form piece (interview, documentary)</li></ul>
+    <h4>Coach XP — ways to earn</h4><ul>
+      <li>Run a certified training session — weighted by session type</li><li>Get an athlete to a verified level-up</li>
+      <li>Complete a coaching certification — up to 4,000 XP for the highest accreditation tier</li><li>Receive positive, confirmed athlete feedback</li>
+      <li>Design a drill adopted by the Academy library</li><li>Log consistent season-long coaching hours</li></ul>
+    <h4>Official XP — ways to earn</h4><ul>
+      <li>Officiate a verified match — weighted by format, from a Pickup game up to a Tournament</li><li>Maintain a high call-accuracy rating over a season</li>
+      <li>Complete rules and mechanics certifications</li><li>Mediate a dispute fairly, confirmed on review</li>
+      <li>Officiate at league events or tournaments</li><li>Mentor newer officials</li></ul>`;
+  const lpBody = `
+    <h4>Athlete</h4><ul><li>Verified matches and drills</li><li>Conditioning benchmarks</li><li>Attribute milestones</li></ul>
+    <h4>Leadership</h4><ul><li>Team captaincy</li><li>Organising games and sessions</li><li>Mentoring, and positive reputation actions</li></ul>
+    <h4>Coaching</h4><ul><li>Coaching sessions run</li><li>Certifications completed</li><li>Athlete improvement outcomes</li></ul>
+    <h4>Community</h4><ul><li>Volunteering and event hosting</li><li>Fundraising</li><li>Mentorship</li></ul>
+    <h4>Creator</h4><ul><li>Content published</li><li>Fan growth</li><li>Livestreams and engagement</li></ul>
+    <h4>Professional</h4><ul><li>Certifications across any track</li><li>Multi-season consistency</li><li>Milestones in officiating, coaching or admin roles</li></ul>`;
+  const repBody = `
+    <h4>Reputation goes up for</h4><ul><li>Helping beginners</li><li>Fair play marks from opponents</li><li>Consistent attendance</li><li>Volunteering and coaching</li><li>Positive, verified content</li></ul>
+    <h4>Reputation goes down for</h4><ul><li>Verified conduct violations</li><li>No-shows</li><li>Unsportsmanlike reports upheld after review</li></ul>`;
+  const fanBody = `
+    <h4>Fans grow from</h4><ul><li>Strong verified performances</li><li>Viral highlight clips</li><li>Milestone achievements</li><li>Positive community reputation</li><li>Winning streaks</li></ul>
+    <h4>Fans decline from</h4><ul><li>Prolonged inactivity</li><li>Verified unsportsmanlike conduct</li><li>Unresolved disputes</li></ul>`;
+  const evidenceBody = `
+    <p style="margin-top:0;">The XP Basketball League is built so that <b style="color:var(--chalk);">no one can self-report their way to the top</b>. Every XP-earning action follows one of these rules:</p>
+    <ul>
+      <li><b style="color:var(--chalk);">Two-party confirmation</b> — match stats need sign-off from an opponent, teammate captain or referee before XP is granted.</li>
+      <li><b style="color:var(--chalk);">Recorded drills</b> — training drills are filmed (your camera, or a coach witnessing live) and timestamped; free tier requires a witness tap-to-confirm, paid tier verifies automatically against the recording.</li>
+      <li><b style="color:var(--chalk);">Multi-signal verification</b> — camera-based shot/rep tracking, ball-strike audio detection and phone motion sensors cross-check each other, so a session can't be faked from the sofa.</li>
+      <li><b style="color:var(--chalk);">Geofenced check-in</b> — XP for attending an affiliated court requires your device to register inside that court's location, the same way run-tracking apps confirm a route was actually run.</li>
+      <li><b style="color:var(--chalk);">Diminishing returns</b> — repeated self-reported entries in a short window earn reduced XP, to blunt spam.</li>
+      <li><b style="color:var(--chalk);">Community flags &amp; review</b> — any verified member can flag a suspicious entry; league admins/officials review before anything is reversed.</li>
+      <li><b style="color:var(--chalk);">Random audits</b> — fast-climbing leaderboard entries are subject to periodic evidence spot-checks, comparing self-logged trends against occasional camera-verified skill checks.</li>
+      <li><b style="color:var(--chalk);">Evidence decay</b> — stale or unverified entries contribute less over time, so a single good game can't inflate a score indefinitely.</li>
+    </ul>`;
+  const attrBody = `
+    <p style="margin-top:0;">Attributes aren't self-declared — each one is computed from weighted, verified evidence:</p>
+    <ul>
+      <li>Verified matches carry the most weight.</li>
+      <li>Recorded or witnessed training drills carry moderate weight.</li>
+      <li>Peer ratings from verified teammates and opponents carry the least weight, and are capped so no single rating can swing a score.</li>
+    </ul>
+    <p>Every attribute is shown as <b style="color:var(--chalk);">Top X% at your level</b> — an anonymised comparison against players at the same level and league tier, recalculated weekly — so "70 Shooting, Top 26%" always means something relative to your peers, not an arbitrary number.</p>
+    <p>A <b style="color:var(--chalk);">confidence tag</b> (Low / Medium / High) shows how much verified evidence backs the figure, which rewards logging more verified reps rather than letting one big night carry an attribute.</p>`;
+  return `
+    <div class="section-head"><div><h2>How The XP Basketball League Works</h2><p>Everything the progression system runs on, in one place.</p></div></div>
+    ${accordionPanel('xp','XP System — 5 tracks', xpBody)}
+    ${accordionPanel('lp','Life Progression System — 6 pathways', lpBody)}
+    ${accordionPanel('rep','Community Reputation', repBody)}
+    ${accordionPanel('fan','Fan Base', fanBody)}
+    ${accordionPanel('evidence','Evidence &amp; Fair Play (anti-cheat)', evidenceBody)}
+    ${accordionPanel('attr','Attributes &amp; Fairness Methodology', attrBody)}`;
+}
+
+function viewVision(){
+  const pillars = [
+    {n:'01', t:'XP', d:'The progression engine — Player, Community, Creator, Coach and Official tracks turn every contribution into measurable status.'},
+    {n:'02', t:'Court Culture', d:'The lifestyle layer — events, fashion, music and media that make the league a scene, not just a schedule.'},
+    {n:'03', t:'Academy', d:'Training and education — the drill library, coaching certification, and the pathway from beginner to Hall of Fame.'},
+    {n:'04', t:'Studio', d:'Content, streaming and production — the tools that turn a Tuesday-night run into a highlight fans replay.'},
+    {n:'05', t:'The League', d:'The operating system tying it together — open for other clubs, coaches and community organisations to run their own sessions on the same infrastructure, and built to be adaptable to other sports once proven on the court.'}
+  ];
+  return `
+    <div class="hero card court-texture">
+      <div class="ob-eyebrow" style="margin-bottom:10px;">FOR INVESTORS, PARTNERS &amp; FUNDERS</div>
+      <h1 class="hero-title">Basketball is the medium. <span class="accent">Human development is the product.</span></h1>
+      <p class="hero-text">The XP Basketball League, delivered by Full-Court Community, pairs real-world sessions with a Life Progression System — six development pathways expressed in-app as five XP tracks, evidence-verified badges, and role-specific interfaces for players, coaches, creators and officials. London first, then England, Europe, then global.</p>
+    </div>
+    <div class="section-head"><div><h2>Traction (illustrative)</h2><p>Prototype figures — wire to real analytics before sharing externally.</p></div></div>
+    <div class="stat-strip">
+      <div class="stat-block"><b>4</b><span>Active teams</span></div>
+      <div class="stat-block"><b>5</b><span>XP tracks</span></div>
+      <div class="stat-block"><b>${Object.values(DB.badges).reduce((n,arr)=>n+arr.length,0)}</b><span>Badge families</span></div>
+      <div class="stat-block"><b>11.6K</b><span>Total fans</span></div>
+    </div>
+    <div class="section-head"><div><h2>Five Pillars</h2><p>The full operating system, one pillar at a time.</p></div></div>
+    <div class="grid grid-3">${pillars.slice(0,3).map(p=>`<div class="card pillar-card"><div class="pillar-num">${p.n}</div><h3 class="card-title">${p.t}</h3><p class="card-desc" style="margin-bottom:0;">${p.d}</p></div>`).join('')}</div>
+    <div class="grid grid-2" style="margin-top:18px;">${pillars.slice(3).map(p=>`<div class="card pillar-card"><div class="pillar-num">${p.n}</div><h3 class="card-title">${p.t}</h3><p class="card-desc" style="margin-bottom:0;">${p.d}</p></div>`).join('')}</div>
+    <div class="section-head"><div><h2>Roadmap</h2><p>Geographic expansion, in order.</p></div></div>
+    <div class="card"><div class="roadmap">
+      <div class="rm-step done"><b>London</b><span>Founding league</span></div>
+      <div class="rm-step"><b>England</b><span>Multi-city rollout</span></div>
+      <div class="rm-step"><b>Europe</b><span>Cross-border leagues</span></div>
+      <div class="rm-step"><b>Global</b><span>Platform, any city</span></div>
+    </div></div>
+    <div class="section-head"><div><h2>Monetisation</h2><p>Multiple revenue lines, live from day one.</p></div></div>
+    <div class="grid grid-3">
+      ${['Freemium subscriptions (AI tracking, adaptive training, minigames)','Tournament &amp; competition entry fees','Team registration fees','Merchandise','Community fundraising &amp; donations','Livestreaming'].map(m=>`<div class="card"><h3 class="card-title" style="font-size:14.5px;">${m}</h3></div>`).join('')}
+    </div>
+    <footer class="dev-note"><b>Dev note —</b> the badge-family stat above reads live from DB.badges so it can't drift out of sync with the catalogue. Full-Court Community, which delivers The XP Basketball League, operates as a project of Saba Collaborative CIC.</footer>`;
+}
+
+/* ---------------------------------------------------------------
+   5. ROUTER
+   --------------------------------------------------------------- */
+const TITLES = {
+  dashboard:['Dashboard','Your progression at a glance'],
+  mycard:['Your Card','Full profile, stats and archetype'],
+  quiz:['Playstyle Quiz','Scenario-based archetype finder'],
+  training:['Training & Clinics','Tailored library per role'],
+  log:['Log Activity','Every entry needs confirmation'],
+  clips:['My Clips','Your personal recorded catalogue'],
+  teams:['Teams','Create, join and compete'],
+  compete:['Compete','Paid registered competitions'],
+  leaderboard:['Leaderboard','Every role, ranked'],
+  badges:['Badges','Evidence-based tiered achievements'],
+  community:['Community Feed','Highlights and league chatter'],
+  howitworks:['How It Works','XP, reputation, fans & fair play, explained'],
+  vision:['The Vision','For investors, partners and funders']
+};
+const VIEW_FN = {
+  dashboard:viewDashboard, mycard:viewMyCard, quiz:viewQuiz, training:viewTraining, log:viewLog,
+  clips:viewClips, teams:viewTeams, compete:viewCompete, leaderboard:viewLeaderboard, badges:viewBadges,
+  community:viewCommunity, howitworks:viewHowItWorks, vision:viewVision
+};
+
+function render(){
+  const root = document.getElementById('root');
+  if (!state.onboarded){ root.innerHTML = viewOnboarding(); return; }
+  const [title, sub] = TITLES[state.view] || TITLES.dashboard;
+  root.innerHTML = `<div id="app-shell">${sidebarHTML()}<div id="main">${topbarHTML(title, sub)}<div id="content">${(VIEW_FN[state.view] || viewDashboard)()}</div></div></div>`;
+}
+
+/* ---------------------------------------------------------------
+   6. EVENTS
+   --------------------------------------------------------------- */
+function quizInit(){
+  const scores = {}; Object.keys(ARCHETYPES).forEach(k=>scores[k]=0);
+  state.quiz = {scores, askedIds:[], currentQ:QUIZ_QUESTIONS[0].id, done:false};
+}
+function quizPickNext(){
+  const answered = state.quiz.askedIds;
+  const remaining = QUIZ_QUESTIONS.filter(q=>!answered.includes(q.id));
+  if (remaining.length===0 || answered.length>=6) return null;
+  const leaders = Object.entries(state.quiz.scores).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>e[0]);
+  function relevance(q){ let s=0; q.options.forEach(o=>Object.entries(o.tags).forEach(([a,w])=>{ if(leaders.includes(a)) s+=w; })); return s; }
+  remaining.sort((a,b)=>relevance(b)-relevance(a));
+  return remaining[0].id;
+}
+
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const action = el.dataset.action;
+
+  switch(action){
+    case 'set-role':
+      state.role = el.dataset.role; state.onboarded = true; state.view = 'dashboard';
+      state.badgeCat = ROLE_META[state.role].badgeCat; state.trainTab = ROLE_META[state.role].trainTab;
+      render(); showToast(`Welcome to the league, ${ROLE_META[state.role].label}!`);
+      break;
+    case 'nav':
+      if (el.dataset.view === 'onboard-reset'){ state.onboarded = false; render(); break; }
+      state.view = el.dataset.view; render();
+      break;
+    case 'progress-challenge': {
+      const c = DB.player.activeChallenges.find(c=>c.id===el.dataset.id);
+      if (c && c.progress < c.target){
+        c.progress = Math.min(c.target, c.progress + Math.ceil(c.target*0.15));
+        if (c.progress >= c.target){ awardXP('player', c.xp); showToast(`✅ "${c.title}" complete!`); }
+        render();
+      }
+      break;
+    }
+    case 'hot-streak-up': DB.player.hotStreak = Math.min(3, DB.player.hotStreak + 1); render(); showToast('🔥 Hot streak building — card glow intensified.'); break;
+    case 'hot-streak-reset': DB.player.hotStreak = 0; render(); break;
+    case 'join-team': { const team = DB.teams.find(t=>t.id===el.dataset.id); showToast(`Request sent to join ${team.name} — a captain will review it.`); break; }
+    case 'approve-logo': { const team = DB.teams.find(t=>t.id===el.dataset.id); team.logoStatus='approved'; showToast(`${team.name}'s logo approved.`); render(); break; }
+    case 'complete-training': {
+      const track = el.dataset.track;
+      awardXP(track, Number(el.dataset.xp));
+      if (track==='player') DB.player.clips.unshift({id:'c'+(DB.player.clips.length+1), title:el.dataset.title, date:'Today', duration:'0:'+(30+Math.floor(Math.random()*30)), note:'Recorded and saved to your personal catalogue for review.'});
+      showToast(`Recorded — saved to ${track==='player' ? 'My Clips' : 'your activity log'}.`);
+      render();
+      break;
+    }
+    case 'log-milestone': {
+      const m = DB.milestones.find(x=>x.id===el.dataset.id);
+      DB.player.pendingMilestones.push({id:m.id, status:'pending'});
+      showToast(`Submitted — high-value achievements (${m.xp.toLocaleString()} XP) are always reviewed by a league admin before XP is granted.`);
+      render();
+      break;
+    }
+    case 'approve-milestone': {
+      const pending = DB.player.pendingMilestones.find(p=>p.id===el.dataset.id);
+      const m = DB.milestones.find(x=>x.id===el.dataset.id);
+      pending.status = 'approved';
+      awardXP(m.track, m.xp);
+      showToast(`Approved — "${m.title}" verified and XP granted.`);
+      render();
+      break;
+    }
+    case 'cycle-tab': state.cycleTab = el.dataset.tab; render(); break;
+    case 'set-mood': state.mood = Number(el.dataset.mood); render(); showToast('Logged how you\u2019re feeling — visible to your coach in aggregate, never interrupting play.'); break;
+    case 'lb-tab': state.lbTab = el.dataset.tab; render(); break;
+    case 'lb-sort': state.lbSort = el.dataset.sort; render(); break;
+    case 'badge-cat': state.badgeCat = el.dataset.cat; state.badgeSub = 'All'; state.badgeOpen=null; render(); break;
+    case 'badge-sub': state.badgeSub = el.dataset.sub; render(); break;
+    case 'toggle-badge': state.badgeOpen = state.badgeOpen === el.dataset.id ? null : el.dataset.id; render(); break;
+    case 'toggle-clip': { const id='clip-'+el.dataset.id; state.badgeOpen = state.badgeOpen===id?null:id; render(); break; }
+    case 'toggle-mg': { const id='mg-'+el.dataset.id; state.badgeOpen = state.badgeOpen===id?null:id; render(); break; }
+    case 'play-minigame': showToast(`${el.dataset.name}: personalised analysis ready — check your improvement summary.`); break;
+    case 'train-tab': state.trainTab = el.dataset.tab; render(); break;
+    case 'toggle-how': state.howOpen[el.dataset.id] = !state.howOpen[el.dataset.id]; render(); break;
+    case 'like-post': { const post = DB.feed.find(f=>f.id===el.dataset.id); post.likes += 1; render(); break; }
+    case 'quiz-answer': {
+      const q = QUIZ_QUESTIONS.find(x=>x.id===el.dataset.qid);
+      const opt = q.options[Number(el.dataset.oidx)];
+      Object.entries(opt.tags).forEach(([a,w]) => state.quiz.scores[a] += w);
+      state.quiz.askedIds.push(q.id);
+      const next = quizPickNext();
+      if (next){ state.quiz.currentQ = next; } else { state.quiz.done = true; }
+      render();
+      break;
+    }
+    case 'restart-quiz': quizInit(); render(); break;
+    case 'apply-archetype': {
+      const labels = attrLabels();
+      if (el.dataset.hybrid === '1'){
+        const a = ARCHETYPES[el.dataset.arch], b = ARCHETYPES[el.dataset.archB];
+        const nickname = el.dataset.nickname;
+        DB.player.archetype = nickname;
+        DB.player.playstyle = `A hybrid build blending ${a.name} (${a.desc}) with ${b.name} (${b.desc})`;
+        const combined = [...new Set([...a.emphasize, ...b.emphasize])];
+        DB.player.strengths = combined.slice(0,3).map(k=>labels[k]);
+        showToast(`Archetype set to "${nickname}".`);
+      } else {
+        const a = ARCHETYPES[el.dataset.arch];
+        DB.player.archetype = a.name;
+        DB.player.playstyle = a.desc;
+        DB.player.strengths = a.emphasize.slice(0,3).map(k=>labels[k]);
+        showToast(`Archetype set to ${a.name}.`);
+      }
+      state.view = 'mycard'; render();
+      break;
+    }
+  }
+});
+
+document.addEventListener('submit', function(e){
+  const form = e.target.closest('[data-action]');
+  if (!form) return;
+  e.preventDefault();
+  const action = form.dataset.action;
+  const data = Object.fromEntries(new FormData(form).entries());
+
+  if (action === 'prepare-cue-form'){
+    state.cueWord = (data.cue||'').trim();
+    state.cycleTab = 'perform';
+    showToast(state.cueWord ? `Cue word set: "${state.cueWord}"` : 'Cue word cleared.');
+    render();
+  }
+  if (action === 'reflect-form'){
+    state.reflectionLog.unshift({date:'Today', j1:data.j1||'', j2:data.j2||'', j3:data.j3||''});
+    awardXP('player', 15);
+    state.mood = null;
+    showToast('Reflection logged — carried into next session\u2019s Preparation step.');
+    render();
+  }
+  if (action === 'create-team-form'){
+    if (!data.name) return;
+    DB.teams.push({id:'t'+(DB.teams.length+1), name:data.name, logo:'🆕', logoStatus:'pending', color:['#2FDD9B','#E8B84B','#E85D4A','#4AA3E8'][DB.teams.length%4], motto:data.motto||'New to the league.', court:data.court||'Court TBD', level:1, fans:10, roster:1, accolades:0});
+    showToast(`${data.name} registered — logo queued for league review.`);
+    render();
+  }
+  if (action === 'register-comp-form'){
+    const comp = DB.competitions.find(c=>c.id===form.dataset.comp);
+    const team = DB.teams.find(t=>t.id===data.team);
+    if (comp.filled < comp.slots){ comp.filled += 1; }
+    DB.player.registrations.push({comp:comp.name, format:comp.format, team:team.name});
+    showToast(`Payment simulated — ${team.name} registered for ${comp.name}.`);
+    render();
+  }
+  if (action === 'log-activity-form'){
+    if (!data.witness && form.dataset.role !== 'creator'){ showToast('A confirmation name is required before XP can be granted.'); return; }
+    const trackByRole = {player:'player', coach:'coach', creator:'creator', admin:'official'};
+    const track = trackByRole[form.dataset.role];
+    if (form.dataset.role === 'player'){
+      DB.matches.unshift({id:'m'+(DB.matches.length+1), type:data.type, date:'Today', result:data.result||'—', note:`${data.pts||0} pts, ${data.ast||0} ast, ${data.reb||0} reb (${data.min||0} min) · confirmed by ${data.witness}`});
+      if (Number(data.ast) > 0) DB.player.attributes.passing = Math.min(99, DB.player.attributes.passing+1);
+      awardXP('player', GAME_TYPE_XP[data.type] || 40);
+    } else if (form.dataset.role === 'coach'){
+      DB.roleCards.coach.sessionsRun += 1;
+      awardXP('coach', COACH_SESSION_XP[data.type] || 35);
+    } else if (form.dataset.role === 'creator'){
+      DB.roleCards.creator.highlightsProduced += 1;
+      DB.feed.unshift({id:'f'+(DB.feed.length+1), name:DB.player.name, role:'Creator', avatar:'🎬', text:`New ${data.type}: ${data.notes||'check it out'}`, likes:0, comments:0});
+      awardXP('creator', CREATOR_CONTENT_XP[data.type] || 30);
+    } else if (form.dataset.role === 'admin'){
+      DB.roleCards.official.matchesOfficiated += 1;
+      awardXP('official', OFFICIATING_XP[data.type] || 35);
+    }
+    render();
+  }
+  if (action === 'new-post-form'){
+    if (!data.text || !data.text.trim()) return;
+    DB.feed.unshift({id:'f'+(DB.feed.length+1), name:DB.player.name, role:(ROLE_META[state.role]||ROLE_META.player).label, avatar:DB.player.photo, text:data.text.trim(), likes:0, comments:0});
+    showToast('Posted to the community feed.');
+    render();
+  }
+});
+
+/* ---------------------------------------------------------------
+   7. INIT
+   --------------------------------------------------------------- */
+render();
+</script>
+</body>
+</html>
