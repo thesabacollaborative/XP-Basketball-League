@@ -13,6 +13,12 @@ Source-of-truth documents live in `docs/`:
 ## Decisions already made (don't re-litigate without a strong reason)
 
 - **DB host:** Neon (branch-per-PR previews pair with Vercel preview deployments).
+  Connects via the universal `@prisma/adapter-pg` + `pg` driver (Node.js runtime
+  everywhere, not edge — bcrypt needs Node crypto), not Neon's serverless
+  HTTP/WebSocket adapter. Same adapter works against local dev (`prisma dev`,
+  plain TCP) and Neon's pooled connection string with zero code branching.
+  Local dev DB: `npx prisma dev --name xp-league-local --detach` (throwaway,
+  data doesn't persist across `prisma dev rm`).
 - **Storage:** Cloudflare R2 (S3-compatible, no egress fees) for Clips.
 - **Under-18 consent (v1):** placeholder gate — capture DOB at signup; if under 13
   (or under 16 where required) require a guardian email + checkbox consent. Stored

@@ -1,0 +1,496 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Entities follow docs/PRD.md §5 verbatim, plus:
+//  - Auth.js's required Account/Session/VerificationToken tables
+//  - XPRule: the build brief requires GAME_TYPE_XP/OFFICIATING_XP/
+//    COACH_SESSION_XP/CREATOR_CONTENT_XP to be admin-configurable in the
+//    data model, not hardcoded — see docs/build-brief.md Phase 1.
+// The Evidence & Fair Play flag/audit queue (PRD §4.5.6-7) is deliberately
+// NOT modeled yet — that's Phase 2 scope, added with its own migration
+// when the review workflow is actually built.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  PLAYER
+  COACH
+  CREATOR
+  ADMIN
+}
+
+enum XPTrackType {
+  PLAYER
+  COMMUNITY
+  CREATOR
+  COACH
+  OFFICIAL
+}
+
+enum Pathway {
+  ATHLETE
+  LEADERSHIP
+  COACHING
+  COMMUNITY
+  CREATOR
+  PROFESSIONAL
+}
+
+enum XPTier {
+  ROUTINE
+  STANDARD
+  SIGNIFICANT
+  RARE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ClipVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js required tables
+// ---------------------------------------------------------------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// User & roles
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  activeRole    Role?
+
+  // Minor consent placeholder gate (see CLAUDE.md) — captured at signup,
+  // not yet a legally vetted flow. Swap in real copy/flow without a
+  // schema change.
+  dateOfBirth       DateTime?
+  guardianEmail     String?
+  guardianConsentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts             Account[]
+  sessions             Session[]
+  roles                UserRole[]
+  xpTracks             XPTrack[]
+  pathwayProgress      PathwayProgress[]
+  quizResults          QuizResult[]
+  attributes           Attribute[]
+  activityLogs         ActivityLog[]         @relation("ActivityOwner")
+  witnessedLogs        ActivityLog[]         @relation("Witness")
+  milestoneSubmissions MilestoneSubmission[] @relation("Submitter")
+  reviewedMilestones   MilestoneSubmission[] @relation("Reviewer")
+  reflectionEntries    ReflectionEntry[]
+  badgeProgress        BadgeProgress[]
+  teamsCreated         Team[]
+  teamMemberships      TeamMember[]
+  registrations        Registration[]
+  clips                Clip[]
+  feedPosts            FeedPost[]
+}
+
+model UserRole {
+  id       String   @id @default(cuid())
+  userId   String
+  role     Role
+  joinedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+// ---------------------------------------------------------------------------
+// XP & progression
+// ---------------------------------------------------------------------------
+
+model XPTrack {
+  id            String      @id @default(cuid())
+  userId        String
+  track         XPTrackType
+  xp            Int         @default(0)
+  level         Int         @default(0)
+  nextThreshold Int         @default(150)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, track])
+}
+
+model PathwayProgress {
+  id                 String   @id @default(cuid())
+  userId             String
+  pathway            Pathway
+  percent            Int      @default(0)
+  lastRecalculatedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pathway])
+}
+
+// Admin-configurable replacement for the prototype's hardcoded
+// GAME_TYPE_XP / OFFICIATING_XP / COACH_SESSION_XP / CREATOR_CONTENT_XP
+// lookup tables. `category` matches which lookup table it replaces;
+// `key` is the activity type (e.g. "5v5", "Tournament", "Skill clinic").
+model XPRule {
+  id       String  @id @default(cuid())
+  category String
+  key      String
+  xp       Int
+  tier     XPTier?
+
+  @@unique([category, key])
+}
+
+// ---------------------------------------------------------------------------
+// Archetype / Playstyle quiz
+// ---------------------------------------------------------------------------
+
+model Archetype {
+  id          String   @id
+  name        String
+  icon        String
+  adjective   String
+  description String
+  emphasize   String[]
+  tip         String
+
+  quizResultsTop    QuizResult[] @relation("TopArchetype")
+  quizResultsSecond QuizResult[] @relation("SecondArchetype")
+}
+
+model QuizQuestion {
+  id       String @id
+  scenario String
+  order    Int    @default(0)
+
+  options QuizOption[]
+}
+
+model QuizOption {
+  id         String @id @default(cuid())
+  questionId String
+  text       String
+  // Weight map keyed by Archetype id, e.g. {"slasher": 3, "shotcreator": 1}
+  tags       Json
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QuizResult {
+  id                String    @id @default(cuid())
+  userId            String
+  topArchetypeId    String
+  secondArchetypeId String?
+  isHybrid          Boolean   @default(false)
+  nickname          String?
+  scores            Json
+  completedAt       DateTime  @default(now())
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topArchetype    Archetype  @relation("TopArchetype", fields: [topArchetypeId], references: [id])
+  secondArchetype Archetype? @relation("SecondArchetype", fields: [secondArchetypeId], references: [id])
+}
+
+model Attribute {
+  id           String          @id @default(cuid())
+  userId       String
+  key          String
+  value        Int
+  evidenceReps Int             @default(0)
+  confidence   ConfidenceLevel @default(LOW)
+  percentile   Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+// ---------------------------------------------------------------------------
+// Activity logging, milestones, reflection
+// ---------------------------------------------------------------------------
+
+model ActivityLog {
+  id                  String         @id @default(cuid())
+  userId              String
+  role                Role
+  type                String
+  tier                XPTier
+  xpAwarded           Int
+  track               XPTrackType
+  witnessName         String?
+  witnessId           String?
+  verificationSignals Json?
+  status              ApprovalStatus @default(APPROVED)
+  matchId             String?
+  createdAt           DateTime       @default(now())
+
+  user       User             @relation("ActivityOwner", fields: [userId], references: [id], onDelete: Cascade)
+  witness    User?            @relation("Witness", fields: [witnessId], references: [id])
+  match      Match?           @relation(fields: [matchId], references: [id])
+  reflection ReflectionEntry?
+}
+
+model Milestone {
+  id          String @id @default(cuid())
+  title       String
+  tier        XPTier
+  xp          Int
+  track       XPTrackType
+  description String
+
+  submissions MilestoneSubmission[]
+}
+
+model MilestoneSubmission {
+  id           String         @id @default(cuid())
+  userId       String
+  milestoneId  String
+  status       ApprovalStatus @default(PENDING)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  user       User      @relation("Submitter", fields: [userId], references: [id], onDelete: Cascade)
+  milestone  Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  reviewedBy User?     @relation("Reviewer", fields: [reviewedById], references: [id])
+}
+
+model ReflectionEntry {
+  id            String  @id @default(cuid())
+  userId        String
+  activityLogId String? @unique
+
+  cueWord               String?
+  mood                  Int?
+  journalWhatWentWell   String?
+  journalWhatToImprove  String?
+  journalWhatWillChange String?
+  coachFeedbackRef      String?
+
+  createdAt DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityLog ActivityLog? @relation(fields: [activityLogId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Badges
+// ---------------------------------------------------------------------------
+
+model Badge {
+  id          String  @id
+  name        String
+  category    String
+  icon        String?
+  sub         String?
+  description String?
+  // Tier thresholds, e.g. [{"name":"Bronze","req":1000}, ...]
+  tiers       Json
+
+  progress BadgeProgress[]
+}
+
+model BadgeProgress {
+  id              String @id @default(cuid())
+  userId          String
+  badgeId         String
+  currentProgress Int    @default(0)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+// ---------------------------------------------------------------------------
+// Teams, competitions, matches
+// ---------------------------------------------------------------------------
+
+model Team {
+  id          String         @id @default(cuid())
+  name        String
+  crest       String?
+  colours     String?
+  motto       String?
+  borough     String?
+  court       String?
+  logoStatus  ApprovalStatus @default(PENDING)
+  createdById String
+  createdAt   DateTime       @default(now())
+
+  createdBy     User            @relation(fields: [createdById], references: [id])
+  members       TeamMember[]
+  registrations Registration[]
+}
+
+model TeamMember {
+  id         String   @id @default(cuid())
+  teamId     String
+  userId     String
+  roleOnTeam String?
+  joinedAt   DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model Competition {
+  id        String    @id @default(cuid())
+  name      String
+  format    String
+  fee       String?
+  startDate DateTime?
+  endDate   DateTime?
+  slots     Int
+  filled    Int       @default(0)
+
+  registrations Registration[]
+}
+
+model Registration {
+  id            String         @id @default(cuid())
+  competitionId String
+  teamId        String?
+  userId        String?
+  status        ApprovalStatus @default(APPROVED)
+  createdAt     DateTime       @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
+}
+
+model Match {
+  id     String   @id @default(cuid())
+  type   String
+  date   DateTime @default(now())
+  result String?
+  note   String?
+  // Participant user ids and free-text confirmations until Phase 2 builds
+  // real multi-account confirmation.
+  participants  Json?
+  confirmations Json?
+  createdAt     DateTime @default(now())
+
+  activityLogs ActivityLog[]
+}
+
+// ---------------------------------------------------------------------------
+// Clips, minigames, feed, courts
+// ---------------------------------------------------------------------------
+
+model Clip {
+  id         String         @id @default(cuid())
+  userId     String
+  title      String
+  recordedAt DateTime       @default(now())
+  duration   String?
+  storageUrl String?
+  notes      String?
+  visibility ClipVisibility @default(PRIVATE)
+  createdAt  DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Minigame {
+  id     String @id
+  title  String
+  tag    String
+  tech   String
+  desc   String
+  detail String
+}
+
+model FeedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  roleLabel String
+  text      String
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Circular geofence (center + radius). PRD allows polygon or radius; radius
+// is the practical v1 shape for a basketball court. Phase 4 concern.
+model Court {
+  id           String   @id @default(cuid())
+  name         String
+  latitude     Float
+  longitude    Float
+  radiusMeters Int      @default(100)
+  organisation String?
+  createdAt    DateTime @default(now())
+}
