@@ -8,6 +8,7 @@ import {
   OFFICIAL_ROLES,
 } from "@/lib/activity-types";
 import { logActivity, submitMilestone } from "@/app/(app)/log/actions";
+import { ComeUpCycle } from "@/components/log/ComeUpCycle";
 
 function Field({
   label,
@@ -170,14 +171,20 @@ const ROLE_FIELDS = {
 export default async function LogActivityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; logged?: string; milestoneSubmitted?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    logged?: string;
+    milestoneSubmitted?: string;
+    cycleTab?: string;
+    reflected?: string;
+  }>;
 }) {
   const sessionUser = await requireUser();
   const user = await db.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
   const role = user.activeRole!;
-  const { error, logged, milestoneSubmitted } = await searchParams;
+  const { error, logged, milestoneSubmitted, cycleTab, reflected } = await searchParams;
 
-  const [milestones, submissions, recentLogs] = await Promise.all([
+  const [milestones, submissions, recentLogs, lastReflection] = await Promise.all([
     db.milestone.findMany({ orderBy: { xp: "asc" } }),
     db.milestoneSubmission.findMany({ where: { userId: user.id } }),
     db.activityLog.findMany({
@@ -185,10 +192,16 @@ export default async function LogActivityPage({
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    db.reflectionEntry.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
   const submissionByMilestone = Object.fromEntries(submissions.map((s) => [s.milestoneId, s]));
 
   const RoleFields = ROLE_FIELDS[role];
+  const initialCycleTab =
+    cycleTab === "perform" || cycleTab === "reflect" ? cycleTab : "prepare";
 
   return (
     <div className="flex flex-col gap-8">
@@ -207,6 +220,23 @@ export default async function LogActivityPage({
           Submitted — high-value achievements are always reviewed by a league admin before XP is granted.
         </p>
       ) : null}
+      {reflected ? (
+        <p className="rounded-sm border border-xp bg-xp/10 px-3 py-2 text-xs text-xp">
+          Reflection logged — carried into next session&apos;s Preparation step. +15 XP
+        </p>
+      ) : null}
+
+      <div>
+        <h2 className="mb-1 font-heading text-xl tracking-wide">The Come-Up Cycle</h2>
+        <p className="mb-4 text-sm text-chalk-dim">
+          Prepare, perform and reflect — every session, in three short steps.
+        </p>
+        <ComeUpCycle
+          cueWord={user.cueWord}
+          growthSeed={lastReflection?.journalWhatWillChange ?? null}
+          initialTab={initialCycleTab}
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-line bg-surface p-5">

@@ -152,3 +152,49 @@ export async function submitMilestone(milestoneId: string) {
   });
   redirect("/log?milestoneSubmitted=1");
 }
+
+export async function setCueWord(formData: FormData) {
+  const user = await requireUser();
+  const cueWord = (formData.get("cue") as string | null)?.trim() || null;
+  await db.user.update({ where: { id: user.id }, data: { cueWord } });
+  redirect("/log?cycleTab=perform");
+}
+
+const reflectionSchema = z.object({
+  j1: z.string().optional(),
+  j2: z.string().optional(),
+  j3: z.string().optional(),
+  mood: z.coerce.number().int().min(0).max(4).optional(),
+});
+
+export async function submitReflection(formData: FormData) {
+  const sessionUser = await requireUser();
+  const user = await db.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
+  const parsed = reflectionSchema.parse(toPlainObject(formData));
+
+  await db.reflectionEntry.create({
+    data: {
+      userId: user.id,
+      cueWord: user.cueWord,
+      mood: parsed.mood,
+      journalWhatWentWell: parsed.j1,
+      journalWhatToImprove: parsed.j2,
+      journalWhatWillChange: parsed.j3,
+    },
+  });
+
+  await db.activityLog.create({
+    data: {
+      userId: user.id,
+      role: "PLAYER",
+      type: "Reflection",
+      tier: "ROUTINE",
+      xpAwarded: 15,
+      track: "PLAYER",
+    },
+  });
+
+  await awardXP(user.id, "PLAYER", 15);
+
+  redirect("/log?cycleTab=prepare&reflected=1");
+}

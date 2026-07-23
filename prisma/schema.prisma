@@ -122,6 +122,9 @@ model User {
   emailVerified DateTime?
   image         String?
   activeRole    Role?
+  // Come-Up Cycle (PRD 4.4): persists per user across sessions, not just
+  // per reflection entry.
+  cueWord       String?
 
   // Minor consent placeholder gate (see CLAUDE.md) — captured at signup,
   // not yet a legally vetted flow. Swap in real copy/flow without a
