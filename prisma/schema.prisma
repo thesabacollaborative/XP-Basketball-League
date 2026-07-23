@@ -440,6 +440,13 @@ model Match {
   date   DateTime @default(now())
   result String?
   note   String?
+  // Structured so badge/dashboard progress can be summed for real instead
+  // of parsed back out of `note` -- PRD 4.6/4.2 both require live counters,
+  // never a hand-set number.
+  pts     Int?
+  ast     Int?
+  reb     Int?
+  minutes Int?
   // Participant user ids and free-text confirmations until Phase 2 builds
   // real multi-account confirmation.
   participants  Json?

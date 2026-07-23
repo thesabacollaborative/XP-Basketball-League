@@ -16,3 +16,10 @@ export const ROLE_LABELS: Record<Role, string> = {
   CREATOR: "Creator",
   ADMIN: "Admin",
 };
+
+export const DEFAULT_BADGE_CATEGORY: Record<Role, string> = {
+  PLAYER: "player",
+  COACH: "coach",
+  CREATOR: "creator",
+  ADMIN: "official",
+};

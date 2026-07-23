@@ -101,6 +101,10 @@ export async function logActivity(formData: FormData) {
         type: d.type,
         result: d.result || null,
         note: `${d.pts} pts, ${d.ast} ast, ${d.reb} reb (${d.min} min)`,
+        pts: d.pts,
+        ast: d.ast,
+        reb: d.reb,
+        minutes: d.min,
         confirmations: { witnessName: d.witness },
       },
     });
