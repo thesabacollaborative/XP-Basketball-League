@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { Pathway, Role, XPTrackType } from "@/generated/prisma/enums";
+import { ATTRIBUTE_KEYS, DEFAULT_ATTRIBUTE_VALUE } from "@/lib/attributes";
 
 const XP_TRACKS: XPTrackType[] = ["PLAYER", "COMMUNITY", "CREATOR", "COACH", "OFFICIAL"];
 const PATHWAYS: Pathway[] = [
@@ -12,10 +13,11 @@ const PATHWAYS: Pathway[] = [
 ];
 
 /**
- * Every user gets all five XP tracks and all six pathway rows from the
- * start (matching the prototype's DB.player shape, which always carries
- * every track/pathway regardless of active role) -- created once, the
- * first time a role is selected.
+ * Every user gets all five XP tracks, all six pathway rows, and a neutral
+ * baseline for all eleven attributes from the start (matching the
+ * prototype's DB.player shape, which always carries every track/pathway/
+ * attribute regardless of active role) -- created once, the first time a
+ * role is selected.
  */
 export async function ensureDefaultProgressionRows(userId: string) {
   await db.$transaction([
@@ -30,6 +32,13 @@ export async function ensureDefaultProgressionRows(userId: string) {
       db.pathwayProgress.upsert({
         where: { userId_pathway: { userId, pathway } },
         create: { userId, pathway, percent: 0 },
+        update: {},
+      }),
+    ),
+    ...ATTRIBUTE_KEYS.map((key) =>
+      db.attribute.upsert({
+        where: { userId_key: { userId, key } },
+        create: { userId, key, value: DEFAULT_ATTRIBUTE_VALUE, evidenceReps: 0, confidence: "LOW" },
         update: {},
       }),
     ),

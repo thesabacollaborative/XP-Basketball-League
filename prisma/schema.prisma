@@ -252,6 +252,11 @@ model QuizResult {
   nickname          String?
   scores            Json
   completedAt       DateTime  @default(now())
+  // Set when the user clicks "Set as my archetype" -- a completed quiz
+  // doesn't automatically overwrite the profile archetype, matching the
+  // prototype's distinct "view result" vs "apply" actions. "Current
+  // archetype" = the row with the latest non-null appliedAt.
+  appliedAt         DateTime?
 
   user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   topArchetype    Archetype  @relation("TopArchetype", fields: [topArchetypeId], references: [id])
