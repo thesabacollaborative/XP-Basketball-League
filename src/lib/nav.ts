@@ -54,3 +54,22 @@ export const ROLE_META: Record<Role, { icon: string; label: string }> = {
   CREATOR: { icon: "🎬", label: "Creator" },
   ADMIN: { icon: "🗂️", label: "Admin" },
 };
+
+export const ROLE_DASHBOARD_COPY: Record<Role, { headline: string; sub: string }> = {
+  PLAYER: {
+    headline: "Your game. Tracked, trained, levelled up.",
+    sub: "Log every run, build your Player Card, and climb the league — one XP track at a time.",
+  },
+  COACH: {
+    headline: "Build players. Build the game.",
+    sub: "Track your athletes' progress, run sessions, and grow your Coach XP track and reputation.",
+  },
+  CREATOR: {
+    headline: "Capture the culture. Grow the brand.",
+    sub: "Turn highlights into fans, and fans into a Creator track that funds the next production.",
+  },
+  ADMIN: {
+    headline: "Run the league like clockwork.",
+    sub: "Teams, courts and events and the Official track — the operating layer behind XP Basketball League.",
+  },
+};
