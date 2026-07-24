@@ -62,17 +62,50 @@ Source-of-truth documents live in `docs/`:
 
 ## Current status
 
-Phase 0 is complete and **deployed**: live at https://xp-basketball-league.vercel.app,
-auto-deploying from `main` on `thesabacollaborative/XP-Basketball-League`
-(GitHub). Real Neon Postgres in production (same DB for production and
-preview deployments — no per-branch DB isolation yet). Real Resend email in
-sandbox mode (only delivers to the Resend account's own signup address until
-a domain is verified). See `DEPLOYMENT.md` for the full setup.
+Phase 0 **and Phase 1 are both complete and deployed**: live at
+https://xp-basketball-league.vercel.app, auto-deploying from `main` on
+`thesabacollaborative/XP-Basketball-League` (GitHub). Real Neon Postgres in
+production (same DB for production and preview deployments — no per-branch DB
+isolation yet). Real Resend email in sandbox mode (only delivers to the Resend
+account's own signup address until a domain is verified). See `DEPLOYMENT.md`
+for the full setup. The two secrets pasted into chat during Phase 0 setup
+(Neon DB password, Resend API key) were already rotated and Vercel's env vars
+updated to match — done, not outstanding.
 
-**Outstanding:** two real secrets (the Neon DB password and the Resend API
-key) were pasted into chat during setup — per the build brief's own security
-rule, flag to the user that these should be rotated once the deploy is
-confirmed stable, don't just assume it's been done.
+Phase 1 (MVP parity) shipped every screen in PRD §3 backed by the real DB:
+XP tracks + compounding level-up curve, the 26-archetype adaptive quiz with
+hybrid nicknames, badges with live (not hand-set) progress counters, Training
+& Clinics, per-role Log Activity forms, the Come-Up Cycle, My Clips, a real
+Dashboard, and How It Works/Vision pulling from real config/live counts.
+Each slice was verified end-to-end in-browser (not just typechecked) before
+committing. Full detail is in each slice's commit message — `git log --oneline`
+for the phase-1 commit sequence.
+
+**Deliberately not built in Phase 1** (flagged inline in commits, not silent
+gaps):
+- Two schema gaps found and fixed while implementing explicit PRD features:
+  `TrainingItem`/`TrainingCompletion` (PRD §4.8 needs a real training catalogue
+  but PRD §5's table never lists one) and structured `Match.pts/ast/reb/minutes`
+  (previously only baked into a note string, blocking real aggregation).
+- Badge progress: only badges with an honest real data source are computed
+  (`src/lib/badges.ts`'s `BADGE_METRICS` registry) — the prototype's 33 badges
+  assume far finer-grained stats (blocks, steals, fan growth, conduct flags)
+  than Log Activity collects. Unmapped badges read a true 0, not a fabricated
+  number.
+- Life pathways (Dashboard) show real stored 0% for everyone — PRD §4.2 asks
+  for a per-pathway scoring formula to be explicitly designed, and neither the
+  PRD nor the prototype ever actually defines one (the prototype's numbers are
+  hand-set demo data). Not invented here; still open.
+- Dropped entirely, no schema for them: Active Challenges and Reputation/Fans
+  (both prototype-only concepts with zero PRD §5 backing).
+- Major Milestones: submission-only (real `MilestoneSubmission` rows created),
+  no admin-approval UI — that needs a second real admin account to test
+  properly, explicitly Phase 2 scope per the build brief.
+- Clips: metadata-only (title/duration/notes), no real R2 video upload —
+  matches the prototype exactly; real upload was an explicit scoping choice
+  to defer, not an oversight.
+- Diminishing-returns/evidence-decay (PRD §4.5) still not implemented —
+  same gap flagged since Phase 0, still deferred to Phase 2.
 
 Also **not yet built**: Auth.js's `session` strategy is `"database"` with an
 **email-only** login (no password) — see the "Auth.js" note below for why.
@@ -83,7 +116,10 @@ To resume local dev after a restart: the local Postgres from `prisma dev` does
 not survive a machine restart in the background — run
 `npx prisma dev --name xp-league-local --detach` again, confirm `.env`'s
 `DATABASE_URL`/`SHADOW_DATABASE_URL` still match its printed connection
-strings (ports can change), then `npx prisma migrate deploy`.
+strings (ports can change), then `npx prisma migrate deploy`. If schema
+changed, also restart the Next dev server — Turbopack can hold a stale
+Prisma Client reference otherwise (hit this once, "Unknown argument" errors
+that a restart fixed).
 
 ## Auth.js
 
